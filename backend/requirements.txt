@@ -1,0 +1,43 @@
+# Essential dependencies (Pruned)
+
+# == Web Framework & Server ==
+fastapi==0.109.1
+python-multipart==0.0.21
+uvicorn==0.27.0
+
+# == Database & ORM ==
+SQLAlchemy==2.0.25
+alembic==1.13.1
+asyncpg==0.31.0
+psycopg-binary==3.3.3
+psycopg2==2.9.11
+
+# == Authentication & Security ==
+PyJWT==2.10.1
+bcrypt==5.0.0
+passlib==1.7.4
+python-jose==3.5.0
+pwdlib[argon2]==0.3.0
+
+# == AI & LLM ==
+langchain-google-genai
+google-genai==1.64.0
+langchain-core==1.2.14
+google-api-core==2.30.0
+
+# == Vector Database ==
+chromadb>=0.4.22
+
+# == PDF Processing ==
+PyMuPDF==1.27.1
+
+# == Validation & Serialization ==
+pydantic-settings==2.1.0
+pydantic==2.12.5
+
+# == Utilities ==
+python-dotenv==1.0.0
+email-validator>=2.3.0
+pandas==3.0.1
+openpyxl==3.1.5
+slowapi==0.1.9
