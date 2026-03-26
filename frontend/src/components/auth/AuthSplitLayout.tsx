@@ -35,65 +35,76 @@ export function AuthSplitLayout({
   const shouldReduceMotion = useReducedMotion()
 
   return (
-    <section className="relative isolate overflow-hidden px-4 py-10 sm:px-6 sm:py-14 lg:py-16">
+    <section className="relative isolate overflow-hidden px-4 py-10 sm:px-6 sm:py-14 lg:py-16 min-h-screen flex items-center">
       <AuthScene />
-      <div className="auth-noise pointer-events-none absolute inset-0 -z-10" />
+      <div className="auth-noise pointer-events-none absolute inset-0 -z-10 opacity-60" />
 
-      <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:gap-10">
+      {/* Tonal Architecture without 1px borders for dark mode */}
+      <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:gap-14">
+        
+        {/* Left Side: Brand & Context */}
         <motion.aside
-          initial={shouldReduceMotion ? false : { opacity: 0, x: -28 }}
-          animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="relative overflow-hidden rounded-3xl border border-(--line) bg-(--surface-soft)/80 p-6 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:p-8"
+          initial={shouldReduceMotion ? false : { opacity: 0, x: -28, y: 10 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative flex flex-col justify-center py-6 sm:p-8"
         >
-          <div className="mb-6 inline-flex rounded-full border border-(--line) bg-(--surface) px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-(--muted)">
+          <div className="mb-8 inline-flex rounded-full bg-(--surface-high) px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-(--brand)">
             {eyebrow}
           </div>
 
-          <h1 className="max-w-2xl text-3xl font-black leading-tight text-(--ink) sm:text-4xl lg:text-5xl">
+          <h1 className="max-w-2xl text-[2.75rem] font-light tracking-tight leading-[1.15] text-white sm:text-5xl lg:text-[3.5rem] lg:leading-[1.1]">
             {title}
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-(--muted) sm:text-base">{subtitle}</p>
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-(--muted) sm:text-lg">
+            {subtitle}
+          </p>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {features.map((feature) => (
+          <div className="mt-12 grid gap-4 sm:grid-cols-3">
+            {features.map((feature, i) => (
               <motion.div
                 key={feature.label}
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 15 }}
                 animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="rounded-2xl border border-(--line) bg-(--surface) p-3.5"
+                transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.1 + 0.2 }}
+                className="rounded-2xl bg-(--surface-soft) p-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]"
               >
-                <div className="text-lg font-extrabold text-(--brand)">{feature.value}</div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-(--muted)">
+                <div className="text-2xl font-semibold tracking-tight text-(--brand)">{feature.value}</div>
+                <div className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-(--muted)">
                   {feature.label}
                 </div>
               </motion.div>
             ))}
           </div>
 
-          <blockquote className="mt-8 rounded-2xl border border-(--line) bg-(--surface) p-4 text-sm leading-6 text-(--ink)">
-            "{quote}"
-            <footer className="mt-2 text-xs font-semibold uppercase tracking-widest text-(--muted)">
+          <blockquote className="mt-12 rounded-2xl bg-(--surface-soft) p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] border-l-2 border-(--brand-ink)">
+            <p className="text-[15px] leading-relaxed italic text-(--ink) font-serif">"{quote}"</p>
+            <footer className="mt-4 text-[11px] font-bold uppercase tracking-[0.15em] text-(--muted)">
               {quoteAuthor}
             </footer>
           </blockquote>
         </motion.aside>
 
+        {/* Right Side: Form Card */}
         <motion.section
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
-          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut', delay: shouldReduceMotion ? 0 : 0.05 }}
-          className="relative rounded-3xl border border-(--line) bg-(--surface) p-6 shadow-[0_28px_80px_-52px_rgba(0,0,0,0.55)] backdrop-blur sm:p-8"
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96, y: 20 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: shouldReduceMotion ? 0 : 0.1 }}
+          className="relative mt-8 lg:mt-0 flex w-full flex-col justify-center rounded-[2rem] bg-[#111827]/40 p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.4)] backdrop-blur-2xl sm:p-12 ring-1 ring-white/5"
         >
-          <div className="pointer-events-none absolute inset-0 rounded-3xl border border-white/15" />
+          {/* Subtle top glare */}
+          <div className="pointer-events-none absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/[0.04] to-transparent" />
 
-          <h2 className="text-2xl font-black text-(--ink)">{formTitle}</h2>
-          <p className="mt-2 text-sm text-(--muted)">{formSubtitle}</p>
+          <div className="relative z-10 w-full">
+            <h2 className="text-[1.75rem] font-medium tracking-tight text-white mb-2">{formTitle}</h2>
+            <p className="text-[13px] text-(--muted) mb-8">{formSubtitle}</p>
 
-          <div className="mt-6">{children}</div>
+            <div className="w-full">{children}</div>
 
-          <div className="mt-6 border-t border-(--line) pt-4 text-sm">{footer}</div>
+            <div className="mt-8 border-t border-white/5 pt-6 text-[13px]">
+              {footer}
+            </div>
+          </div>
         </motion.section>
       </div>
     </section>

@@ -61,35 +61,35 @@ export function LoginPage() {
     >
       <form className="space-y-4" onSubmit={onSubmit}>
         <label className="block">
-          <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.2em] text-(--muted)">Email</span>
+          <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-(--muted)">Email</span>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@company.com"
             autoComplete="email"
-            className="w-full rounded-xl border border-(--line) bg-(--surface-soft)/70 px-3 py-3 text-sm text-(--ink) outline-none transition focus:border-(--brand) focus:ring-2 focus:ring-teal-100"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-[14px] text-white outline-none transition-all placeholder:text-(--muted)/60 focus:border-(--brand) focus:bg-white/10 focus:ring-4 focus:ring-(--brand)/10"
           />
         </label>
 
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-bold uppercase tracking-[0.2em] text-(--muted)">Password</span>
+        <label className="block mt-5">
+          <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-(--muted)">Password</span>
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="••••••••"
             autoComplete="current-password"
-            className="w-full rounded-xl border border-(--line) bg-(--surface-soft)/70 px-3 py-3 text-sm text-(--ink) outline-none transition focus:border-(--brand) focus:ring-2 focus:ring-teal-100"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-[14px] text-white outline-none transition-all placeholder:text-(--muted)/60 focus:border-(--brand) focus:bg-white/10 focus:ring-4 focus:ring-(--brand)/10"
           />
         </label>
 
         <motion.button
-          whileHover={shouldReduceMotion ? undefined : { scale: 1.01 }}
-          whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
+          whileHover={shouldReduceMotion ? undefined : { scale: 1.01, filter: 'brightness(1.1)' }}
+          whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
           disabled={isSubmitting}
           type="submit"
-          className="w-full rounded-xl bg-(--brand) px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-65"
+          className="mt-8 w-full rounded-lg bg-gradient-to-r from-(--brand) to-(--brand-ink) px-4 py-3.5 text-[14px] font-medium tracking-wide text-[#001c39] shadow-[0_0_20px_rgba(164,201,255,0.15)] transition-all disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </motion.button>

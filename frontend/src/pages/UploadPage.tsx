@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
 import { useMutation } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { AlertTriangle, CheckCircle2, FileUp, LoaderCircle, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileUp, LoaderCircle, X, ExternalLink } from 'lucide-react'
 import { AxiosError } from 'axios'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -148,46 +148,53 @@ export function UploadPage() {
   const isFlagged = result?.status?.toUpperCase() === 'FLAGGED'
 
   return (
-    <div className="relative">
+    <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
       <UploadScene />
+      
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28 }}
-        className="space-y-6"
+        className="space-y-6 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-8"
       >
         <PageShell
           title="Upload Invoice"
           description="Drop a PDF invoice, process it with AI validation, and review detailed extraction results."
         >
           <div className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div
                 {...getRootProps()}
-                className={`cursor-pointer rounded-2xl border-2 border-dashed transition ${
+                className={`cursor-pointer rounded-[2rem] border-2 border-dashed p-1.5 transition-all duration-300 ${
                   isDragActive
-                    ? 'border-teal-500 bg-teal-50'
-                    : 'border-(--line) bg-white/85 hover:border-teal-300 hover:bg-teal-50/40'
+                    ? 'border-(--brand) bg-(--brand)/10 shadow-[0_0_30px_rgba(59,130,246,0.2)]'
+                    : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
                 }`}
               >
                 <input {...getInputProps()} />
                 <motion.div
                   whileHover={{ y: -2 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="p-8 text-center"
+                  className="rounded-3xl p-10 text-center backdrop-blur-sm"
                 >
-                  <FileUp className="mx-auto h-10 w-10 text-(--brand-ink)" />
-                  <h3 className="mt-3 text-lg font-semibold text-(--ink)">Drop PDF here</h3>
-                  <p className="mt-1 text-sm text-(--muted)">or click to browse files</p>
-                  <p className="mt-1 text-xs text-(--muted)">1 file only, max {(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB</p>
+                  <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl mb-5 transition-colors duration-300 ${isDragActive ? 'bg-(--brand)/20 text-(--brand)' : 'bg-white/5 text-(--muted)'}`}>
+                    <FileUp className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-light tracking-tight text-white mb-2">Drop PDF here</h3>
+                  <p className="text-sm font-medium text-(--muted)">or click to browse files</p>
+                  <p className="mt-3 text-xs uppercase tracking-widest text-white/30">1 file only • MAX {(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB</p>
                 </motion.div>
               </div>
 
               {fileDropErrors.length > 0 && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  <ul className="space-y-1">
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200 backdrop-blur-md">
+                  <ul className="space-y-1.5">
                     {fileDropErrors.map((errorMessage) => (
-                      <li key={errorMessage}>- {errorMessage}</li>
+                      <li key={errorMessage} className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
+                        {errorMessage}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -195,18 +202,26 @@ export function UploadPage() {
 
               {selectedFile && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between rounded-xl border border-(--line) bg-white p-3"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center justify-between rounded-2xl bg-white/[0.04] p-4 ring-1 ring-white/10 backdrop-blur-md"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-(--ink)">{selectedFile.name}</p>
-                    <p className="text-xs text-(--muted)">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--brand)/20 text-(--brand)">
+                      <FileUp className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white truncate max-w-[200px] sm:max-w-xs">{selectedFile.name}</p>
+                      <p className="text-xs text-(--muted)">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={clearSelection}
-                    className="rounded-full border border-(--line) p-1.5 text-(--muted) hover:bg-slate-50"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      clearSelection()
+                    }}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-(--muted) transition-colors hover:bg-white/10 hover:text-white"
                     aria-label="Remove file"
                   >
                     <X className="h-4 w-4" />
@@ -218,55 +233,74 @@ export function UploadPage() {
                 type="button"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   void handleProcessInvoice()
                 }}
                 disabled={!selectedFile || isPending}
-                className="inline-flex items-center gap-2 rounded-xl bg-(--brand) px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-(--brand) to-(--brand-ink) px-6 py-4 text-[14px] font-semibold text-white shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 {isPending ? (
                   <>
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                    Processing Invoice...
+                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                    Processing with AI...
                   </>
                 ) : (
                   <>
-                    <FileUp className="h-4 w-4" />
+                    <SparklesIcon className="h-5 w-5 text-white/80 transition-transform group-hover:scale-110" />
                     Process Invoice
                   </>
                 )}
               </motion.button>
             </div>
 
-            <div className="rounded-2xl border border-(--line) bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-(--ink)">Processing Progress</h3>
-              <div className="mt-3 space-y-2.5">
-                {PROCESS_STAGES.map((stage, index) => {
-                  const state = stageState(index, currentStage)
-                  return (
-                    <div key={stage} className="flex items-center gap-2.5 text-sm">
-                      {state === 'complete' ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      ) : state === 'active' && isPending ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin text-sky-600" />
-                      ) : (
-                        <span className="h-4 w-4 rounded-full border border-(--line)" />
-                      )}
-                      <span
-                        className={`${
-                          state === 'active' ? 'font-semibold text-(--ink)' : 'text-(--muted)'
-                        }`}
-                      >
-                        {stage}
-                      </span>
-                    </div>
-                  )
-                })}
+            <div className="rounded-[2rem] bg-white/[0.02] p-6 sm:p-8 ring-1 ring-white/5 shadow-inner backdrop-blur-xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-white border-b border-white/10 pb-4 mb-6">Processing Trajectory</h3>
+                <div className="space-y-6">
+                  {PROCESS_STAGES.map((stage, index) => {
+                    const state = stageState(index, currentStage)
+                    return (
+                      <div key={stage} className="relative flex items-center gap-4 text-sm">
+                        {/* Connecting Line */}
+                        {index < PROCESS_STAGES.length - 1 && (
+                          <div className={`absolute left-3.5 top-8 h-8 w-px -ml-[0.5px] ${state === 'complete' ? 'bg-(--brand)/50' : 'bg-white/10'}`} />
+                        )}
+                        
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
+                          state === 'complete' ? 'border-(--brand) bg-(--brand)/20 text-(--brand)' : 
+                          state === 'active' && isPending ? 'border-sky-400 bg-sky-400/20 text-sky-400' : 
+                          'border-white/10 bg-white/5 text-transparent'
+                        }`}>
+                          {state === 'complete' ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : state === 'active' && isPending ? (
+                            <div className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+                          ) : (
+                            <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                          )}
+                        </div>
+                        <span
+                          className={`transition-colors duration-300 ${
+                            state === 'active' && isPending ? 'font-medium text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]' : 
+                            state === 'complete' ? 'text-white/80' : 'text-(--muted)'
+                          }`}
+                        >
+                          {stage}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
 
               {processingError && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  {processingError}
+                <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200 backdrop-blur-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertTriangle className="h-4 w-4 text-red-400" />
+                    <span className="font-semibold text-red-300">Processing Error</span>
+                  </div>
+                  <p className="text-red-200/80 text-xs">{processingError}</p>
                 </div>
               )}
             </div>
@@ -275,175 +309,158 @@ export function UploadPage() {
 
         {result && (
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28 }}
-            className="space-y-5 rounded-2xl border border-(--line) bg-white p-6 shadow-sm"
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="overflow-hidden rounded-[2rem] bg-white/[0.02] ring-1 ring-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] backdrop-blur-2xl"
           >
-            <div
-              className={`rounded-xl p-3 text-sm font-semibold ${
-                isFlagged
-                  ? 'border border-amber-200 bg-amber-50 text-amber-800'
-                  : 'border border-emerald-200 bg-emerald-50 text-emerald-800'
-              }`}
-            >
-              {isFlagged ? (
-                <span className="inline-flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" /> Issues Found - Invoice flagged for review
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" /> All Checks Passed - Invoice processed successfully
-                </span>
-              )}
-            </div>
-
-            <div className="grid gap-3 rounded-xl border border-(--line) bg-slate-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-(--muted)">Vendor</p>
-                <p className="font-semibold text-(--ink)">{result.invoice.vendor_name}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-(--muted)">Invoice #</p>
-                <p className="font-semibold text-(--ink)">{result.invoice.invoice_number}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-(--muted)">Date</p>
-                <p className="font-semibold text-(--ink)">{formatDate(result.invoice.date)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-(--muted)">Due Date</p>
-                <p className="font-semibold text-(--ink)">{formatDate(result.invoice.due_date)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-(--muted)">Currency</p>
-                <p className="font-semibold text-(--ink)">{result.invoice.currency}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-(--muted)">Status</p>
-                <p className="font-semibold text-(--ink)">{result.status}</p>
+            <div className="border-b border-white/5 bg-white/[0.01] p-6 sm:p-8">
+              <div
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold tracking-wide uppercase shadow-inner ${
+                  isFlagged
+                    ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20'
+                }`}
+              >
+                {isFlagged ? (
+                  <><AlertTriangle className="h-4 w-4" /> Issues Found - Flagged</>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4" /> All Checks Passed</>
+                )}
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-(--line)">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-(--muted)">
-                  <tr>
-                    <th className="px-4 py-3">Description</th>
-                    <th className="px-4 py-3">Qty</th>
-                    <th className="px-4 py-3">Unit Price</th>
-                    <th className="px-4 py-3">Line Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.invoice.line_items.map((item) => (
-                    <tr key={item.id} className="border-t border-(--line)">
-                      <td className="px-4 py-3 text-(--ink)">{item.description}</td>
-                      <td className="px-4 py-3 text-(--ink)">{item.quantity}</td>
-                      <td className="px-4 py-3 text-(--ink)">
-                        {formatCurrency(item.unit_price, result.invoice.currency)}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-(--ink)">
-                        {formatCurrency(item.line_total, result.invoice.currency)}
-                      </td>
-                    </tr>
+            <div className="grid lg:grid-cols-2">
+              {/* Header Info */}
+              <div className="p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-white/5 space-y-6">
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-(--muted)">Parsed Document Entity</h4>
+                
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-(--muted) mb-1">Vendor</p>
+                    <p className="text-base font-medium text-white">{result.invoice.vendor_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-(--muted) mb-1">Invoice Number</p>
+                    <p className="text-sm font-mono text-white/90 bg-white/5 px-2 py-0.5 rounded w-fit">{result.invoice.invoice_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-(--muted) mb-1">Date</p>
+                    <p className="text-sm text-white/80">{formatDate(result.invoice.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-(--muted) mb-1">Due Date</p>
+                    <p className="text-sm text-white/80">{formatDate(result.invoice.due_date)}</p>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-white/5">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-(--muted)">Subtotal</span>
+                      <span className="text-sm text-white">
+                        {formatCurrency(result.invoice.subtotal, result.invoice.currency)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-(--muted)">Tax ({result.invoice.tax_rate}%)</span>
+                      <span className="text-sm text-white">
+                        {formatCurrency(result.invoice.tax_amount, result.invoice.currency)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                      <span className="text-sm font-medium text-white">Grand Total</span>
+                      <span className="text-xl font-light tracking-tight text-(--brand)">
+                        {formatCurrency(result.invoice.grand_total, result.invoice.currency)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Validation & Line Items Preview */}
+              <div className="p-6 sm:p-8 bg-white/[0.01]">
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-(--muted) mb-4">Integrity Checks</h4>
+                
+                <div className="space-y-3 mb-8">
+                  {result.validation.checks.map((check) => (
+                    <div
+                      key={check.check_name}
+                      className={`rounded-xl px-4 py-3 backdrop-blur-sm ${
+                        check.passed
+                          ? 'bg-emerald-500/5 ring-1 ring-emerald-500/10'
+                          : 'bg-amber-500/10 ring-1 ring-amber-500/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-1">
+                        {check.passed ? 
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : 
+                          <AlertTriangle className="h-4 w-4 text-amber-400" />
+                        }
+                        <p className={`text-sm font-medium ${check.passed ? 'text-emerald-200/90' : 'text-amber-300'}`}>
+                          {check.check_name}
+                        </p>
+                      </div>
+                      {!check.passed && (
+                        <p className="text-[11px] text-amber-200/70 ml-7 leading-relaxed flex flex-col sm:flex-row sm:gap-4">
+                          <span><strong className="text-amber-200/90 font-medium">Expected:</strong> {check.expected_value}</span>
+                          <span><strong className="text-amber-200/90 font-medium">Actual:</strong> {check.actual_value}</span>
+                          <span className="text-amber-300/90 font-semibold">{check.discrepancy}</span>
+                        </p>
+                      )}
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
 
-            <div className="ml-auto w-full max-w-md space-y-1 rounded-xl border border-(--line) bg-slate-50 p-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-(--muted)">Subtotal</span>
-                <span className="font-semibold text-(--ink)">
-                  {formatCurrency(result.invoice.subtotal, result.invoice.currency)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-(--muted)">Tax ({result.invoice.tax_rate}%)</span>
-                <span className="font-semibold text-(--ink)">
-                  {formatCurrency(result.invoice.tax_amount, result.invoice.currency)}
-                </span>
-              </div>
-              <div className="mt-2 flex items-center justify-between border-t border-(--line) pt-2">
-                <span className="font-semibold text-(--ink)">Grand Total</span>
-                <span className="text-base font-extrabold text-(--ink)">
-                  {formatCurrency(result.invoice.grand_total, result.invoice.currency)}
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-(--line) bg-white p-4">
-              <h3 className="text-sm font-semibold text-(--ink)">Validation Checks</h3>
-              <div className="mt-3 space-y-2 text-sm">
-                {result.validation.checks.map((check) => (
-                  <motion.div
-                    key={check.check_name}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg border px-3 py-2 ${
-                      check.passed
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                        : 'border-amber-200 bg-amber-50 text-amber-900'
-                    }`}
+                {isFlagged && result.validation.audit_report && (
+                  <div className="mb-8 overflow-hidden rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 ring-1 ring-amber-500/20 p-5">
+                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-amber-500 mb-3 flex items-center gap-2">
+                      <SparklesIcon className="h-3.5 w-3.5" /> AI Audit Diagnostic
+                    </h4>
+                    <p className="text-sm font-medium text-amber-200/90 leading-relaxed whitespace-pre-wrap">
+                      {result.validation.audit_report}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="rounded-lg bg-white/5 px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-white/10 ring-1 ring-white/10"
                   >
-                    <p className="font-medium">{check.check_name}</p>
-                    {!check.passed && (
-                      <p className="mt-1 text-xs">
-                        Expected: {check.expected_value} | Actual: {check.actual_value} | Discrepancy: {check.discrepancy}
-                      </p>
-                    )}
-                  </motion.div>
-                ))}
+                    Upload Another
+                  </button>
+
+                  <Link
+                    to={`/invoices/${encodeURIComponent(result.invoice.invoice_number)}`}
+                    className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-4 py-2.5 text-[13px] font-medium text-white transition hover:bg-white/10 ring-1 ring-white/10"
+                  >
+                    Deep Dive <ExternalLink className="h-3.5 w-3.5 text-(--muted)" />
+                  </Link>
+
+                  {isFlagged && (
+                    <Link
+                      to="/review"
+                      className="inline-flex items-center gap-2 rounded-lg bg-amber-500/20 px-4 py-2.5 text-[13px] font-medium text-amber-300 transition hover:bg-amber-500/30 ring-1 ring-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)] ml-auto"
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" /> Start Review
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {isFlagged && result.validation.audit_report && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-amber-200 bg-amber-50 p-4"
-              >
-                <h3 className="text-sm font-semibold text-amber-900">AI Audit Report</h3>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-amber-800">{result.validation.audit_report}</p>
-              </motion.div>
-            )}
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="rounded-xl border border-(--line) px-4 py-2 text-sm font-semibold text-(--ink) hover:bg-slate-50"
-              >
-                Upload Another
-              </button>
-
-              <Link
-                to={`/invoices/${encodeURIComponent(result.invoice.invoice_number)}`}
-                className="rounded-xl border border-(--line) px-4 py-2 text-sm font-semibold text-(--ink) hover:bg-slate-50"
-              >
-                Open Invoice Detail
-              </Link>
-
-              <Link
-                to="/invoices"
-                className="rounded-xl border border-(--line) px-4 py-2 text-sm font-semibold text-(--ink) hover:bg-slate-50"
-              >
-                View in Explorer
-              </Link>
-
-              {isFlagged && (
-                <Link
-                  to="/review"
-                  className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
-                >
-                  Go to Review Queue
-                </Link>
-              )}
             </div>
           </motion.section>
         )}
       </motion.div>
     </div>
   )
+}
+
+function SparklesIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" />
+    </svg>
+  );
 }

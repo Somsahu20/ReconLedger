@@ -1,30 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f7fb;
+  --bg: #f2f5f0;
   --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --ink: #102239;
-  --muted: #5d6f86;
-  --line: #d8e0ea;
-  --brand: #1f9d8f;
-  --brand-ink: #0f665d;
-  --glow-a: rgba(31, 157, 143, 0.18);
-  --glow-b: rgba(76, 145, 236, 0.16);
+  --surface-soft: #f5f8f4;
+  --surface-high: #e4ebe0;
+  --ink: #1a2e22;
+  --muted: #5c6e60;
+  --line: #c8d5c6;
+  --brand: #2F4C39;
+  --brand-ink: #1d3325;
+  --contrast: #1a2e22;
+  --glow-a: rgba(47, 76, 57, 0.16);
+  --glow-b: rgba(85, 140, 100, 0.12);
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --bg: #0b1321;
-  --surface: #121c2f;
-  --surface-soft: #1a273d;
-  --ink: #e5eefc;
-  --muted: #9baecc;
-  --line: #263956;
-  --brand: #2ca99a;
-  --brand-ink: #7ce5d8;
-  --glow-a: rgba(44, 169, 154, 0.22);
-  --glow-b: rgba(71, 118, 188, 0.25);
+  /* Obsidian Recon — Pastel Green */
+  --bg: #0b160f;
+  --surface: #0d1a12;
+  --surface-soft: #162218;
+  --surface-high: #243328;
+  --ink: #d4e4d8;
+  --muted: #8fa896;
+  --line: #2a3d2e;
+  --brand: #7fbf8e;
+  --brand-ink: #4a9960;
+  --contrast: #ffffff;
+  --glow-a: rgba(127, 191, 142, 0.10);
+  --glow-b: rgba(47, 76, 57, 0.25);
   color-scheme: dark;
 }
 
@@ -40,28 +45,40 @@ body,
 }
 
 body {
-  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-family: "Playfair Display", "Georgia", "Times New Roman", serif;
   color: var(--ink);
+  background: var(--bg);
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
   background:
-    radial-gradient(circle at 10% 0%, var(--glow-a) 0%, transparent 30%),
-    radial-gradient(circle at 100% 100%, var(--glow-b) 0%, transparent 35%),
-    var(--bg);
+    radial-gradient(ellipse 60% 60% at 10% 0%, var(--glow-a) 0%, transparent 80%),
+    radial-gradient(ellipse 70% 70% at 90% 100%, var(--glow-b) 0%, transparent 80%);
+  pointer-events: none;
 }
 
 .auth-noise {
   background-image:
-    radial-gradient(circle at 14% 18%, rgba(44, 169, 154, 0.16), transparent 34%),
-    radial-gradient(circle at 86% 78%, rgba(76, 145, 236, 0.18), transparent 38%),
-    linear-gradient(125deg, rgba(255, 255, 255, 0.26), transparent 55%);
+    radial-gradient(circle at 14% 18%, rgba(47, 76, 57, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 78%, rgba(85, 140, 100, 0.14), transparent 38%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.20), transparent 55%);
 }
 
 :root[data-theme='dark'] .auth-noise {
   background-image:
-    radial-gradient(circle at 12% 15%, rgba(44, 169, 154, 0.2), transparent 34%),
-    radial-gradient(circle at 86% 82%, rgba(76, 145, 236, 0.24), transparent 40%),
-    linear-gradient(130deg, rgba(16, 28, 46, 0.62), transparent 56%);
+    radial-gradient(circle at 12% 15%, rgba(127, 191, 142, 0.06), transparent 45%),
+    radial-gradient(circle at 86% 82%, rgba(47, 76, 57, 0.20), transparent 50%),
+    linear-gradient(130deg, rgba(11, 22, 15, 0.4), transparent 60%);
 }
 
+/* ======================================================================
+   DARK MODE: Override standard light-mode Tailwind utilities
+   ====================================================================== */
 :root[data-theme='dark'] .bg-white,
 :root[data-theme='dark'] .bg-white\/85,
 :root[data-theme='dark'] .bg-white\/95,
@@ -77,38 +94,113 @@ body {
 
 :root[data-theme='dark'] .bg-slate-100,
 :root[data-theme='dark'] .hover\:bg-slate-100:hover {
-  background-color: var(--surface-soft) !important;
+  background-color: var(--surface-high) !important;
 }
 
-:root[data-theme='dark'] .bg-amber-50 {
-  background-color: #2a2313 !important;
-}
-
-:root[data-theme='dark'] .bg-amber-100 {
-  background-color: #3a2d17 !important;
-}
-
+:root[data-theme='dark'] .bg-amber-50 { background-color: #2a2313 !important; }
+:root[data-theme='dark'] .bg-amber-100 { background-color: #3a2d17 !important; }
 :root[data-theme='dark'] .border-amber-100,
 :root[data-theme='dark'] .border-amber-200,
-:root[data-theme='dark'] .border-amber-300 {
-  border-color: #6e5528 !important;
-}
-
+:root[data-theme='dark'] .border-amber-300 { border-color: #6e5528 !important; }
 :root[data-theme='dark'] .text-amber-700,
 :root[data-theme='dark'] .text-amber-800,
-:root[data-theme='dark'] .text-amber-900 {
-  color: #f4d189 !important;
-}
+:root[data-theme='dark'] .text-amber-900 { color: #f4d189 !important; }
 
 :root[data-theme='dark'] .bg-teal-50,
 :root[data-theme='dark'] .bg-teal-50\/40,
 :root[data-theme='dark'] .hover\:bg-teal-50\/40:hover {
-  background-color: rgba(31, 157, 143, 0.14) !important;
+  background-color: rgba(164, 201, 255, 0.1) !important;
 }
 
 :root[data-theme='dark'] .focus\:ring-teal-100:focus {
-  --tw-ring-color: rgba(44, 169, 154, 0.32) !important;
+  --tw-ring-color: rgba(164, 201, 255, 0.3) !important;
 }
+
+/* ======================================================================
+   LIGHT MODE: Override hardcoded "white" utilities used in Obsidian Recon
+   
+   All page components were styled for dark mode with text-white,
+   bg-white/N, border-white/N, ring-white/N. In light mode these must
+   invert. We use var(--contrast) for glass overlays and var(--ink) for text.
+   ====================================================================== */
+
+/* ---- TEXT ---- */
+/* Content text: white → use ink variable (dark in light mode) */
+:root:not([data-theme='dark']) [class*="text-white"]:not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-indigo"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-sky"]):not([class*="from-"]):not(.skip-light-fix) {
+  color: var(--ink) !important;
+}
+
+/* ---- BACKGROUNDS ---- */
+/* Glass overlays: bg-white/N → use contrast at same opacity */
+:root:not([data-theme='dark']) [class*="bg-white\\/"] {
+  background-color: color-mix(in srgb, var(--contrast) 5%, transparent) !important;
+}
+
+:root:not([data-theme='dark']) [class*="bg-\\[\\#070d1f\\]"],
+:root:not([data-theme='dark']) [class*="bg-\\[\\#0c1324\\]"] {
+  background-color: var(--bg) !important;
+}
+
+/* ---- BORDERS ---- */
+:root:not([data-theme='dark']) [class*="border-white\\/"] {
+  border-color: color-mix(in srgb, var(--contrast) 12%, transparent) !important;
+}
+
+/* ---- RINGS ---- */
+:root:not([data-theme='dark']) [class*="ring-white\\/"] {
+  --tw-ring-color: color-mix(in srgb, var(--contrast) 10%, transparent) !important;
+}
+
+/* ---- DIVIDERS ---- */
+:root:not([data-theme='dark']) [class*="divide-white\\/"] > * + * {
+  border-color: color-mix(in srgb, var(--contrast) 8%, transparent) !important;
+}
+
+/* ---- PLACEHOLDER TEXT ---- */
+:root:not([data-theme='dark']) [class*="placeholder\\:text-white"]::placeholder {
+  color: var(--muted) !important;
+}
+
+/* ---- GRADIENTS ---- */
+/* Radial gradients referencing dark mode bg colors → use theme bg */
+:root:not([data-theme='dark']) [class*="to-\\[\\#070d1f\\]"],
+:root:not([data-theme='dark']) [class*="via-\\[\\#070d1f\\]"],
+:root:not([data-theme='dark']) [class*="from-\\[\\#070d1f\\]"] {
+  --tw-gradient-to: var(--bg) !important;
+  --tw-gradient-via: var(--bg) !important;
+  --tw-gradient-from: var(--bg) !important;
+}
+
+/* ---- PRESERVE WHITE TEXT ON COLORED BUTTONS ---- */
+/* Buttons with gradient or solid color backgrounds keep white text */
+:root:not([data-theme='dark']) [class*="bg-gradient"] [class*="text-white"],
+:root:not([data-theme='dark']) [class*="bg-gradient"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="from-emerald"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="from-amber"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="from-indigo"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="bg-emerald"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="bg-indigo"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="bg-red"][class*="text-white"],
+:root:not([data-theme='dark']) [class*="bg-sky"][class*="text-white"],
+:root:not([data-theme='dark']) .skip-light-fix {
+  color: #ffffff !important;
+}
+
+/* ---- SCROLLBAR ---- */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--contrast) 15%, transparent);
+  border-radius: 3px;
+}
+
+/* ======================================================================
+   GLOBAL UTILITIES
+   ====================================================================== */
 
 a:focus-visible,
 button:focus-visible,
@@ -120,12 +212,34 @@ select:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ======================================================================
+   MOBILE RESPONSIVENESS
+   ====================================================================== */
+@media (max-width: 640px) {
+  /* Ensure tables scroll horizontally on mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  thead, tbody, tfoot, tr, th, td {
+    white-space: nowrap;
+  }
+
+  /* Reduce padding on glass panels for mobile */
+  [class*="rounded-\\[2rem\\]"] {
+    border-radius: 1.25rem !important;
+  }
+
+  /* Scale down oversized headings */
+  [class*="text-3xl"] { font-size: 1.5rem !important; }
+  [class*="text-4xl"] { font-size: 1.75rem !important; }
 }

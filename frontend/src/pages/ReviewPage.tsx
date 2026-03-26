@@ -10,6 +10,7 @@ import {
   LoaderCircle,
   MessageSquareText,
   X,
+  ShieldAlert,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -27,12 +28,12 @@ import { PageShell } from './PageShell'
 type ActiveTab = 'pending' | 'reviewed'
 
 const pageVariants = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
+  exit: { opacity: 0, y: -16 },
 }
 
-const pageTransition = { duration: 0.3 }
+const pageTransition = { duration: 0.28 }
 
 function reviewerName(review: ReviewHistoryItem) {
   return typeof review.reviewed_by === 'string' ? review.reviewed_by : review.reviewed_by.full_name
@@ -42,17 +43,14 @@ function getResolveErrorMessage(error: unknown) {
   if (error instanceof AxiosError) {
     const statusCode = error.response?.status
     const detail = error.response?.data?.detail
-
     if (statusCode === 400) {
       if (typeof detail === 'string') return detail
       return 'Invoice cannot be reviewed in its current state.'
     }
-
     if (statusCode === 404) return 'Invoice was not found. Refresh queue and try again.'
     if (typeof statusCode === 'number' && statusCode >= 500) return 'Server error while resolving invoice. Please retry.'
     if (typeof detail === 'string') return detail
   }
-
   return 'Could not update invoice status. Please try again.'
 }
 
@@ -97,7 +95,6 @@ export function ReviewPage() {
       resolveFlaggedInvoice(invoiceId, { note }),
     onSuccess: async (result) => {
       setActiveTab('reviewed')
-
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['review', 'flagged-list'] }),
         queryClient.invalidateQueries({ queryKey: ['review', 'reviewed-list'] }),
@@ -105,7 +102,6 @@ export function ReviewPage() {
         queryClient.invalidateQueries({ queryKey: ['invoices', 'list'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] }),
       ])
-
       toast.success(`Invoice ${result.invoice_number} moved to reviewed`)
       setSelectedInvoice(null)
       setReviewNote('')
@@ -141,7 +137,6 @@ export function ReviewPage() {
 
   function submitReview() {
     if (!selectedInvoice) return
-
     const normalizedNote = reviewNote.trim()
     resolveMutation.mutate({
       invoiceId: selectedInvoice.id,
@@ -150,52 +145,68 @@ export function ReviewPage() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
       <ReviewScene />
+
       <motion.div
         variants={pageVariants}
         initial="initial"
         animate="animate"
         exit="exit"
         transition={pageTransition}
-        className="space-y-6"
+        className="space-y-6 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-8"
       >
         <PageShell
           title="Review Queue"
-          description="Resolve flagged invoices with reviewer notes and track reviewed outcomes in one workspace."
+          description="Resolve structural discrepancies with reviewer notes and track audited outcomes in the secure ledger."
         >
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
               <motion.button
                 type="button"
-                whileHover={{ y: -1.5 }}
-                whileTap={{ scale: 0.99 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab('pending')}
-                className={`rounded-2xl border p-4 text-left transition ${
+                className={`flex flex-col rounded-[2rem] p-6 text-left transition-all duration-300 backdrop-blur-xl ring-1 shadow-[0_8px_32px_rgba(0,0,0,0.15)] ${
                   activeTab === 'pending'
-                    ? 'border-amber-300 bg-amber-50'
-                    : 'border-(--line) bg-white hover:bg-slate-50'
+                    ? 'ring-amber-500/50 bg-amber-500/10 shadow-[0_0_30px_rgba(245,158,11,0.2)]'
+                    : 'ring-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
                 }`}
               >
-                <p className="text-xs font-semibold uppercase tracking-wide text-(--muted)">Pending Review</p>
-                <p className="mt-2 text-2xl font-extrabold text-(--ink)">{pendingCount}</p>
-                <p className="mt-1 text-xs text-(--muted)">Flagged invoices waiting for auditor action</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`p-2 rounded-xl flex items-center justify-center ${activeTab === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-(--muted)'}`}>
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">Pending Triage</p>
+                </div>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <p className={`text-4xl font-light tracking-tight ${activeTab === 'pending' ? 'text-amber-400' : 'text-white'}`}>{pendingCount}</p>
+                  <p className={`text-xs ${activeTab === 'pending' ? 'text-amber-200/60' : 'text-(--muted)'}`}>flagged items awaiting action</p>
+                </div>
               </motion.button>
 
               <motion.button
                 type="button"
-                whileHover={{ y: -1.5 }}
-                whileTap={{ scale: 0.99 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab('reviewed')}
-                className={`rounded-2xl border p-4 text-left transition ${
+                className={`flex flex-col rounded-[2rem] p-6 text-left transition-all duration-300 backdrop-blur-xl ring-1 shadow-[0_8px_32px_rgba(0,0,0,0.15)] ${
                   activeTab === 'reviewed'
-                    ? 'border-emerald-300 bg-emerald-50'
-                    : 'border-(--line) bg-white hover:bg-slate-50'
+                    ? 'ring-emerald-500/50 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.2)]'
+                    : 'ring-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
                 }`}
               >
-                <p className="text-xs font-semibold uppercase tracking-wide text-(--muted)">Reviewed</p>
-                <p className="mt-2 text-2xl font-extrabold text-(--ink)">{reviewedCount}</p>
-                <p className="mt-1 text-xs text-(--muted)">Invoices moved from flagged to reviewed</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`p-2 rounded-xl flex items-center justify-center ${activeTab === 'reviewed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-(--muted)'}`}>
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">Audited State</p>
+                </div>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <p className={`text-4xl font-light tracking-tight ${activeTab === 'reviewed' ? 'text-emerald-400' : 'text-white'}`}>{reviewedCount}</p>
+                  <p className={`text-xs ${activeTab === 'reviewed' ? 'text-emerald-200/60' : 'text-(--muted)'}`}>invoices permanently resolved</p>
+                </div>
               </motion.button>
             </div>
 
@@ -203,107 +214,101 @@ export function ReviewPage() {
               {activeTab === 'pending' ? (
                 <motion.section
                   key="pending-view"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-3"
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.24 }}
+                  className="space-y-4"
                 >
                   {isFlaggedLoading && (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       {[0, 1, 2, 3].map((index) => (
-                        <div key={index} className="h-26 animate-pulse rounded-2xl border border-(--line) bg-white/80" />
+                        <div key={index} className="h-40 animate-pulse rounded-[1.5rem] bg-white/5 ring-1 ring-white/10" />
                       ))}
                     </div>
                   )}
 
                   {isFlaggedError && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                      <p className="font-semibold">Could not load pending queue.</p>
+                    <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200 backdrop-blur-md">
+                      <p className="font-semibold text-red-300 text-base mb-3">Error fetching pending queue datastream.</p>
                       <button
                         type="button"
-                        onClick={() => {
-                          void refetchFlagged()
-                        }}
-                        className="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
+                        onClick={() => void refetchFlagged()}
+                        className="rounded-xl bg-red-500/20 hover:bg-red-500/30 transition-colors px-4 py-2.5 text-[13px] font-semibold text-white"
                       >
-                        Retry
+                        Re-initialize Connection
                       </button>
                     </div>
                   )}
 
                   {!isFlaggedLoading && !isFlaggedError && (flaggedInvoices?.length ?? 0) === 0 && (
-                    <div className="rounded-2xl border border-(--line) bg-white p-6 text-center">
-                      <CircleCheckBig className="mx-auto h-8 w-8 text-emerald-600" />
-                      <p className="mt-2 text-lg font-semibold text-(--ink)">No pending reviews</p>
-                      <p className="mt-1 text-sm text-(--muted)">
-                        All flagged invoices are resolved. New flags will appear here automatically.
+                    <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-12 text-center shadow-inner backdrop-blur-xl">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 mb-5 ring-1 ring-emerald-500/20">
+                        <CircleCheckBig className="h-8 w-8" />
+                      </div>
+                      <p className="text-xl font-light tracking-tight text-white">Queue Empty</p>
+                      <p className="mt-2 text-sm text-(--muted) max-w-sm mx-auto">
+                        All programmatic flags have been resolved. System intelligence active.
                       </p>
                     </div>
                   )}
 
                   {!isFlaggedLoading && !isFlaggedError && (flaggedInvoices?.length ?? 0) > 0 && (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {flaggedInvoices?.map((invoice) => (
                         <motion.article
                           key={invoice.id}
-                          whileHover={{ y: -1.5 }}
-                          whileTap={{ scale: 0.995 }}
-                          className="rounded-2xl border border-amber-200 bg-white p-4 shadow-sm"
+                          whileHover={{ y: -2 }}
+                          className="flex flex-col rounded-[1.5rem] bg-white/[0.02] p-5 ring-1 ring-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl relative overflow-hidden group"
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          
+                          <div className="relative z-10 flex items-start justify-between gap-3 mb-4">
                             <div>
-                              <p className="text-sm font-semibold text-(--ink)">{invoice.invoice_number}</p>
-                              <p className="mt-1 text-xs text-(--muted)">{invoice.vendor_name}</p>
+                              <p className="text-base font-semibold text-white tracking-wide">{invoice.invoice_number}</p>
+                              <p className="mt-0.5 text-[13px] text-(--muted) truncate max-w-[160px]">{invoice.vendor_name}</p>
                             </div>
-                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-                              <motion.span
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 500 }}
-                                className="inline-block"
-                              >
-                                FLAGGED
-                              </motion.span>
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-amber-400 ring-1 ring-amber-500/20 uppercase shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+                              FLAGGED
                             </span>
                           </div>
 
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                            <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-                              <p className="text-(--muted)">Amount</p>
-                              <p className="font-semibold text-(--ink)">{formatCurrency(invoice.grand_total, invoice.currency)}</p>
+                          <div className="relative z-10 grid grid-cols-2 gap-3 text-[13px] mb-4">
+                            <div className="rounded-xl bg-white/[0.03] p-3 ring-1 ring-white/5">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted) mb-1">Exposure</p>
+                              <p className="font-mono text-white/90">{formatCurrency(invoice.grand_total, invoice.currency)}</p>
                             </div>
-                            <div className="rounded-lg bg-slate-50 px-2.5 py-2">
-                              <p className="text-(--muted)">Processed</p>
-                              <p className="font-semibold text-(--ink)">{formatDate(invoice.processed_at)}</p>
+                            <div className="rounded-xl bg-white/[0.03] p-3 ring-1 ring-white/5">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted) mb-1">Detected</p>
+                              <p className="font-medium text-white/90">{formatDate(invoice.processed_at)}</p>
                             </div>
                           </div>
 
                           {invoice.audit_report && (
-                            <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-2 text-xs text-amber-900">
-                              <p className="inline-flex items-center gap-1.5 font-semibold">
-                                <AlertTriangle className="h-3.5 w-3.5" />
-                                Audit Summary
+                            <div className="relative z-10 mb-5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200/90 flex-1">
+                              <p className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-400 mb-1.5">
+                                <AlertTriangle className="h-3 w-3" />
+                                Vector Analysis
                               </p>
-                              <p className="mt-1 line-clamp-3 whitespace-pre-wrap">{invoice.audit_report}</p>
+                              <p className="line-clamp-3 leading-relaxed opacity-90">{invoice.audit_report}</p>
                             </div>
                           )}
 
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
                             <motion.button
                               type="button"
-                              whileHover={{ y: -1 }}
-                              whileTap={{ scale: 0.985 }}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
                               onClick={() => openResolveModal(invoice)}
-                              className="rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600"
+                              className="flex-1 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-3 py-2.5 text-[13px] font-semibold text-white hover:brightness-110 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all"
                             >
-                              Resolve
+                              Take Action
                             </motion.button>
                             <Link
                               to={`/invoices/${encodeURIComponent(invoice.invoice_number)}`}
-                              className="rounded-xl border border-(--line) px-3 py-1.5 text-xs font-semibold text-(--ink) hover:bg-slate-50"
+                              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-white/10 transition-colors ring-1 ring-transparent hover:ring-white/5 text-center"
                             >
-                              Open Detail
+                              Inspect
                             </Link>
                           </div>
                         </motion.article>
@@ -314,138 +319,137 @@ export function ReviewPage() {
               ) : (
                 <motion.section
                   key="reviewed-view"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-4"
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.24 }}
+                  className="space-y-6"
                 >
                   {(isReviewedLoading || isHistoryLoading) && (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       {[0, 1, 2, 3].map((index) => (
-                        <div key={index} className="h-24 animate-pulse rounded-2xl border border-(--line) bg-white/80" />
+                        <div key={index} className="h-28 animate-pulse rounded-[1.5rem] bg-white/5 ring-1 ring-white/10" />
                       ))}
                     </div>
                   )}
 
                   {(isReviewedError || isHistoryError) && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                      <p className="font-semibold">Could not load reviewed records.</p>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void refetchReviewed()
-                          }}
-                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
-                        >
-                          Retry Reviewed
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void refetchHistory()
-                          }}
-                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
-                        >
-                          Retry History
-                        </button>
+                    <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200 backdrop-blur-md">
+                      <p className="font-semibold text-red-300 text-base mb-3">Error fetching resolved matrix.</p>
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => void refetchReviewed()} className="rounded-xl bg-red-500/20 hover:bg-red-500/30 transition-colors px-4 py-2.5 text-[13px] font-semibold text-white">Retry Datastream</button>
+                        <button type="button" onClick={() => void refetchHistory()} className="rounded-xl bg-red-500/20 hover:bg-red-500/30 transition-colors px-4 py-2.5 text-[13px] font-semibold text-white">Retry Subsystem</button>
                       </div>
                     </div>
                   )}
 
                   {!isReviewedLoading && !isHistoryLoading && !isReviewedError && !isHistoryError && (
-                    <>
-                      {(reviewedData?.invoices.length ?? 0) === 0 ? (
-                        <div className="rounded-2xl border border-(--line) bg-white p-6 text-center">
-                          <FileClock className="mx-auto h-8 w-8 text-(--muted)" />
-                          <p className="mt-2 text-lg font-semibold text-(--ink)">No reviewed invoices yet</p>
-                          <p className="mt-1 text-sm text-(--muted)">
-                            Resolve pending invoices to build the reviewed timeline.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="overflow-hidden rounded-2xl border border-(--line) bg-white">
-                          <table className="min-w-full text-left text-sm">
-                            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-(--muted)">
-                              <tr>
-                                <th className="px-4 py-3">Invoice #</th>
-                                <th className="px-4 py-3">Vendor</th>
-                                <th className="px-4 py-3">Amount</th>
-                                <th className="px-4 py-3">Review Note</th>
-                                <th className="px-4 py-3">Reviewed At</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {reviewedData?.invoices.map((invoice) => {
-                                const historyItem = reviewNoteByInvoiceId.get(invoice.id)
-                                return (
-                                  <motion.tr
-                                    key={invoice.id}
-                                    whileHover={{ backgroundColor: 'rgba(248, 250, 252, 0.95)' }}
-                                    className="border-t border-(--line)"
-                                  >
-                                    <td className="px-4 py-3 font-semibold text-(--ink)">
-                                      <Link to={`/invoices/${encodeURIComponent(invoice.invoice_number)}`} className="hover:underline">
-                                        {invoice.invoice_number}
-                                      </Link>
-                                    </td>
-                                    <td className="px-4 py-3 text-(--ink)">{invoice.vendor_name}</td>
-                                    <td className="px-4 py-3 text-(--ink)">
-                                      {formatCurrency(invoice.grand_total, invoice.currency)}
-                                    </td>
-                                    <td className="max-w-64 px-4 py-3 text-(--muted)">
-                                      <motion.span
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ type: 'spring', stiffness: 500 }}
-                                        className="mb-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-800"
-                                      >
-                                        Reviewed
-                                      </motion.span>
-                                      <br />
-                                      {historyItem?.review_note ? (
-                                        <span className="line-clamp-2">{historyItem.review_note}</span>
-                                      ) : (
-                                        <span className="text-xs">No note</span>
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-3 text-(--muted)">
-                                      {formatDate(historyItem?.reviewed_at ?? invoice.processed_at)}
-                                    </td>
-                                  </motion.tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-
-                      <div className="rounded-2xl border border-(--line) bg-white p-4">
-                        <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-(--ink)">
-                          <MessageSquareText className="h-4 w-4" />
-                          Recent Review Notes
-                        </h3>
-                        {(reviewHistory?.length ?? 0) === 0 ? (
-                          <p className="mt-2 text-sm text-(--muted)">No review note history available yet.</p>
+                    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] xl:grid-cols-[2fr_1fr]">
+                      <div className="space-y-4">
+                        {(reviewedData?.invoices.length ?? 0) === 0 ? (
+                          <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-12 text-center shadow-[0_8px_32px_rgba(0,0,0,0.1)] backdrop-blur-xl flex flex-col items-center justify-center h-full min-h-[300px]">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-(--muted) mb-5">
+                              <FileClock className="h-8 w-8" />
+                            </div>
+                            <p className="text-xl font-light tracking-tight text-white">No historical data logs</p>
+                            <p className="mt-2 text-sm text-(--muted) max-w-sm mx-auto">
+                              Engage with the pending queue to populate audit trails and timeline events.
+                            </p>
+                          </div>
                         ) : (
-                          <div className="mt-3 space-y-2">
+                          <div className="overflow-hidden rounded-[2rem] bg-white/[0.02] ring-1 ring-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-2xl">
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                                <thead className="bg-white/[0.02] text-[10px] font-bold uppercase tracking-widest text-(--muted) border-b border-white/10">
+                                  <tr>
+                                    <th className="px-6 py-4">Reference Target</th>
+                                    <th className="px-6 py-4">Linked Entity</th>
+                                    <th className="px-6 py-4">Value Recorded</th>
+                                    <th className="px-6 py-4">Audited Event Data</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                  {reviewedData?.invoices.map((invoice) => {
+                                    const historyItem = reviewNoteByInvoiceId.get(invoice.id)
+                                    return (
+                                      <motion.tr
+                                        key={invoice.id}
+                                        whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+                                        className="transition-colors group"
+                                      >
+                                        <td className="px-6 py-4 font-semibold text-white">
+                                          <Link to={`/invoices/${encodeURIComponent(invoice.invoice_number)}`} className="hover:text-(--brand) transition-colors">
+                                            {invoice.invoice_number}
+                                          </Link>
+                                        </td>
+                                        <td className="px-6 py-4 text-white/80 group-hover:text-white transition-colors">
+                                          {invoice.vendor_name}
+                                        </td>
+                                        <td className="px-6 py-4 font-mono text-white/90">
+                                          {formatCurrency(invoice.grand_total, invoice.currency)}
+                                        </td>
+                                        <td className="px-6 py-4 max-w-[280px]">
+                                          <div className="flex flex-col gap-1.5">
+                                            <div className="flex items-center gap-2">
+                                              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-400 ring-1 ring-emerald-500/20">
+                                                CLEARED
+                                              </span>
+                                              <span className="text-[11px] text-(--muted)">
+                                                {formatDate(historyItem?.reviewed_at ?? invoice.processed_at)}
+                                              </span>
+                                            </div>
+                                            <p className="text-[13px] text-white/70 truncate">
+                                              {historyItem?.review_note ? historyItem.review_note : 'Systematic resolution via console.'}
+                                            </p>
+                                          </div>
+                                        </td>
+                                      </motion.tr>
+                                    )
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl lg:sticky lg:top-24 h-fit">
+                        <h3 className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-widest text-(--muted) mb-5">
+                          <MessageSquareText className="h-4 w-4" />
+                          Activity Ledger
+                        </h3>
+                        
+                        {(reviewHistory?.length ?? 0) === 0 ? (
+                          <div className="py-8 text-center bg-white/[0.01] rounded-2xl">
+                            <p className="text-sm text-(--muted)">No recent operational entries.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/5 before:to-transparent">
                             {reviewHistory?.slice(0, 6).map((item) => (
                               <motion.div
                                 key={item.id}
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="rounded-xl border border-(--line) bg-slate-50 px-3 py-2.5 text-xs"
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-[13px] backdrop-blur-md shadow-sm ml-7 md:ml-0"
                               >
-                                <p className="font-semibold text-(--ink)">{reviewerName(item)}</p>
-                                <p className="mt-0.5 text-(--muted)">{formatDate(item.reviewed_at)}</p>
-                                <p className="mt-1 text-(--ink)">{item.review_note || 'No note provided.'}</p>
+                                <div className="absolute top-5 -left-8 md:hidden h-2 w-2 rounded-full bg-(--brand) ring-4 ring-[#070d1f]" />
+                                
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <p className="font-semibold text-white flex items-center gap-2">
+                                    <div className="h-5 w-5 rounded-full bg-(--brand)/20 flex items-center justify-center text-[10px] text-(--brand)">
+                                      {reviewerName(item).charAt(0).toUpperCase()}
+                                    </div>
+                                    {reviewerName(item)}
+                                  </p>
+                                  <p className="text-[11px] text-(--muted) font-mono">{formatDate(item.reviewed_at)}</p>
+                                </div>
+                                <p className="text-white/80 pl-7">{item.review_note || <span className="text-white/40 italic">System override applied.</span>}</p>
                               </motion.div>
                             ))}
                           </div>
                         )}
                       </div>
-                    </>
+                    </div>
                   )}
                 </motion.section>
               )}
@@ -460,80 +464,89 @@ export function ReviewPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 px-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#070d1f]/80 px-4 backdrop-blur-md"
             onClick={closeResolveModal}
           >
             <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-              className="w-full max-w-lg rounded-2xl border border-(--line) bg-white p-5 shadow-xl"
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-[#070d1f] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex items-start justify-between gap-2">
+              {/* Modal Header */}
+              <div className="bg-white/[0.02] px-6 py-5 border-b border-white/5 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-lg font-bold text-(--ink)">Resolve Flagged Invoice</p>
-                  <p className="mt-0.5 text-sm text-(--muted)">
-                    {selectedInvoice.invoice_number} • {selectedInvoice.vendor_name}
+                  <h3 className="text-lg font-light tracking-tight text-white flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-amber-500" /> Executive Override
+                  </h3>
+                  <p className="mt-2 text-[13px] text-(--muted) flex items-center gap-2">
+                    <span className="font-mono text-white/90 bg-white/5 px-1.5 py-0.5 rounded">{selectedInvoice.invoice_number}</span> 
+                    • 
+                    <span className="text-white/80">{selectedInvoice.vendor_name}</span>
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeResolveModal}
-                  className="rounded-full border border-(--line) p-1.5 text-(--muted) hover:bg-slate-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-(--muted) transition-colors hover:bg-white/10 hover:text-white"
                   aria-label="Close resolve modal"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                <p className="inline-flex items-center gap-1.5 font-semibold">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  This action changes status from FLAGGED to REVIEWED.
-                </p>
+              {/* Modal Body */}
+              <div className="p-6">
+                <div className="mb-6 rounded-xl bg-amber-500/5 px-4 py-3 text-[13px] text-amber-200/90 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                  <p className="flex items-start gap-2.5">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 translate-y-0.5" />
+                    <span>This operation forcibly transitions the entity from <strong className="text-amber-400 font-semibold tracking-wide uppercase text-[11px]">Flagged</strong> to <strong className="text-emerald-400 font-semibold tracking-wide uppercase text-[11px]">Reviewed</strong> state within the central ledger.</span>
+                  </p>
+                </div>
+
+                <label className="block space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-(--muted)">
+                    Operational Notation (Optional)
+                  </span>
+                  <textarea
+                    value={reviewNote}
+                    onChange={(event) => setReviewNote(event.target.value)}
+                    rows={4}
+                    placeholder="Provide justification vectors for the audit trail..."
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white placeholder:text-white/30 outline-none ring-1 ring-transparent transition-all focus:bg-white/[0.08] focus:ring-(--brand)/50 custom-scrollbar resize-none"
+                  />
+                </label>
               </div>
 
-              <label className="mt-4 block">
-                <span className="text-xs font-semibold uppercase tracking-wide text-(--muted)">
-                  Reviewer Note (optional)
-                </span>
-                <textarea
-                  value={reviewNote}
-                  onChange={(event) => setReviewNote(event.target.value)}
-                  rows={4}
-                  placeholder="Add context for this decision..."
-                  className="mt-1.5 w-full rounded-xl border border-(--line) px-3 py-2 text-sm text-(--ink) outline-none ring-(--brand)/25 transition focus:ring"
-                />
-              </label>
-
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
+              {/* Modal Footer */}
+              <div className="bg-white/[0.01] px-6 py-5 border-t border-white/5 flex flex-wrap justify-end gap-3">
                 <button
                   type="button"
                   onClick={closeResolveModal}
                   disabled={resolveMutation.isPending}
-                  className="rounded-xl border border-(--line) px-4 py-2 text-sm font-semibold text-(--ink) hover:bg-slate-50 disabled:opacity-60"
+                  className="rounded-xl bg-white/5 px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-50"
                 >
-                  Cancel
+                  Abort Action
                 </button>
                 <motion.button
                   type="button"
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.985 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={submitReview}
                   disabled={resolveMutation.isPending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-[13px] font-semibold text-white hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:shadow-none transition-all"
                 >
                   {resolveMutation.isPending ? (
                     <>
                       <LoaderCircle className="h-4 w-4 animate-spin" />
-                      Resolving...
+                      Executing...
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      Mark as Reviewed
+                      Confirm Resolution
                     </>
                   )}
                 </motion.button>

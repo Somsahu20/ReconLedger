@@ -24,15 +24,10 @@ export function AppLayout() {
 
   useEffect(() => {
     function onEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setMobileMenuOpen(false)
-      }
+      if (event.key === 'Escape') setMobileMenuOpen(false)
     }
-
     window.addEventListener('keydown', onEscape)
-    return () => {
-      window.removeEventListener('keydown', onEscape)
-    }
+    return () => window.removeEventListener('keydown', onEscape)
   }, [])
 
   async function handleLogout() {
@@ -50,22 +45,23 @@ export function AppLayout() {
         Skip to main content
       </a>
 
-      <header className="sticky top-0 z-20 border-b border-(--line) bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-white/[0.02] backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="text-lg font-extrabold tracking-tight text-(--brand-ink)">
-            ReconLedger
+          <div className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-gradient-to-br from-(--brand) to-indigo-500 shadow-[0_0_10px_var(--brand)]" />
+            Recon<span className="font-light text-(--muted)">Ledger</span>
           </div>
 
-          <nav aria-label="Primary" className="hidden gap-2 md:flex">
+          <nav aria-label="Primary" className="hidden lg:flex items-center gap-1 xl:gap-2">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `rounded-full px-3 py-1.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 ${
+                  `relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 ${
                     isActive
-                      ? 'bg-(--brand) text-white'
-                      : 'text-(--muted) hover:bg-(--surface-soft) hover:text-(--ink)'
+                      ? 'text-white bg-white/10 shadow-inner ring-1 ring-white/10'
+                      : 'text-(--muted) hover:text-white hover:bg-white/5'
                   }`
                 }
               >
@@ -76,35 +72,33 @@ export function AppLayout() {
 
           <button
             type="button"
-            className="inline-flex rounded-full border border-(--line) p-2 text-(--ink) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 md:hidden"
+            className="inline-flex rounded-lg border border-white/10 bg-white/5 p-2 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) lg:hidden"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
             onClick={() => setMobileMenuOpen((prev) => !prev)}
           >
-            {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-4 lg:flex">
             <button
               type="button"
               onClick={toggleTheme}
-              className="inline-flex items-center gap-1.5 rounded-full border border-(--line) px-3 py-1.5 text-sm font-semibold text-(--ink) transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand)"
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
-            <span className="max-w-48 truncate text-sm font-medium text-(--muted)">
+            <div className="h-4 w-px bg-white/10" />
+            <span className="max-w-32 truncate text-[13px] font-medium text-(--muted)">
               {user?.full_name}
             </span>
             <button
               type="button"
-              onClick={() => {
-                void handleLogout()
-              }}
-              className="rounded-full border border-(--line) px-3 py-1.5 text-sm font-semibold text-(--ink) transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2"
+              onClick={() => { void handleLogout() }}
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand)"
             >
               Logout
             </button>
@@ -114,23 +108,23 @@ export function AppLayout() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="border-t border-(--line) bg-white px-4 py-3 md:hidden"
+              className="absolute inset-x-0 top-full border-b border-white/10 bg-[#070d1f]/95 backdrop-blur-2xl px-4 py-4 lg:hidden shadow-2xl"
             >
-              <nav id={mobileMenuId} aria-label="Mobile" className="grid gap-1">
+              <nav id={mobileMenuId} aria-label="Mobile" className="grid gap-2">
                 {navItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) =>
-                      `rounded-lg px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2 ${
+                      `rounded-xl px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) ${
                         isActive
-                          ? 'bg-(--brand) text-white'
-                          : 'text-(--muted) hover:bg-(--surface-soft) hover:text-(--ink)'
+                          ? 'bg-white/10 text-white ring-1 ring-white/10'
+                          : 'text-(--muted) hover:bg-white/5 hover:text-white'
                       }`
                     }
                   >
@@ -139,24 +133,20 @@ export function AppLayout() {
                 ))}
               </nav>
 
-              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-(--line) bg-slate-50 px-3 py-2">
-                <span className="truncate text-sm font-medium text-(--muted)">{user?.full_name}</span>
-                <div className="flex items-center gap-2">
+              <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                <span className="truncate text-sm font-medium text-white">{user?.full_name}</span>
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="inline-flex items-center gap-1 rounded-md border border-(--line) bg-white px-2 py-1 text-xs font-semibold text-(--ink) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2"
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand)"
                   >
-                    {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-                    {theme === 'dark' ? 'Light' : 'Dark'}
+                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      void handleLogout()
-                    }}
-                    className="rounded-md border border-(--line) bg-white px-2.5 py-1 text-xs font-semibold text-(--ink) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand) focus-visible:ring-offset-2"
+                    onClick={() => { void handleLogout() }}
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand)"
                   >
                     Logout
                   </button>
