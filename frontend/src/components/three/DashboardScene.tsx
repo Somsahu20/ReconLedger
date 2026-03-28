@@ -1,5 +1,5 @@
-import { Suspense, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Float, Points, PointMaterial } from '@react-three/drei'
 import type { Points as ThreePoints } from 'three'
 
@@ -41,15 +41,11 @@ function FloatingOrb() {
 
 export function DashboardScene() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <Suspense fallback={null}>
-        <Canvas camera={{ position: [0, 0, 6], fov: 52 }}>
-          <ambientLight intensity={0.55} />
-          <directionalLight position={[2, 2, 3]} intensity={1.1} color="#6caef3" />
-          <ParticleCloud />
-          <FloatingOrb />
-        </Canvas>
-      </Suspense>
-    </div>
+    <>
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[2, 2, 3]} intensity={1.1} color="#6caef3" />
+      <ParticleCloud />
+      <FloatingOrb />
+    </>
   )
 }

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Activity, AlertTriangle, CheckCircle2, Clock3, FileText, Search, Sparkles, UploadCloud, ChevronRight } from 'lucide-react'
+import { Activity, AlertTriangle, CheckCircle2, Clock3, FileText, Search, UploadCloud, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getDashboardStats } from '../api/dashboard'
-import { DashboardScene } from '../components/three/DashboardScene'
 import { formatCurrency, formatDate, toStatusLabel } from '../lib/formatters'
 import { PageShell } from './PageShell'
 
@@ -117,8 +116,6 @@ export function DashboardPage() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#070d1f] to-[#070d1f]" />
       <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-blue-900/20 blur-[100px]" />
       
-      <DashboardScene />
-      
       <motion.div
         initial="initial"
         animate="animate"
@@ -187,11 +184,11 @@ export function DashboardPage() {
 
             {!isLoading && !isError && !isEmpty && stats && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {/* Total Invoices */}
                   <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/10 transition-colors hover:bg-white/[0.05]">
                     <div className="flex items-center justify-between text-(--muted)">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.1em]">Total Invoices</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Total Invoices</span>
                       <div className="p-2 bg-white/5 rounded-lg text-(--brand)">
                         <FileText className="h-4 w-4" />
                       </div>
@@ -204,7 +201,7 @@ export function DashboardPage() {
                   {/* Processed Today */}
                   <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/10 transition-colors hover:bg-white/[0.05]">
                     <div className="flex items-center justify-between text-(--muted)">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.1em]">Processed Today</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Processed Today</span>
                       <div className="p-2 bg-white/5 rounded-lg text-emerald-400">
                         <Activity className="h-4 w-4" />
                       </div>
@@ -217,7 +214,7 @@ export function DashboardPage() {
                   {/* Needs Review - Accentuated */}
                   <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-amber-500/10 p-5 ring-1 ring-amber-500/20 transition-colors hover:bg-amber-500/15">
                     <div className="flex items-center justify-between text-amber-300">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.1em]">Needs Review</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Needs Review</span>
                       <div className="p-2 bg-amber-500/20 rounded-lg text-amber-300">
                         <AlertTriangle className="h-4 w-4" />
                       </div>
@@ -228,19 +225,6 @@ export function DashboardPage() {
                     <Link to="/review" className="absolute bottom-5 right-5 opacity-0 transition-opacity group-hover:opacity-100">
                       <ChevronRight className="h-5 w-5 text-amber-300" />
                     </Link>
-                  </motion.div>
-
-                  {/* Total Value */}
-                  <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-5 ring-1 ring-white/10 transition-colors hover:from-white/[0.08] hover:to-white/[0.02]">
-                    <div className="flex items-center justify-between text-(--muted)">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.1em]">Total Value</span>
-                      <div className="p-2 bg-white/5 rounded-lg text-indigo-400">
-                        <Sparkles className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <p className="mt-4 text-3xl font-light tracking-tight text-white md:text-3xl lg:text-4xl truncate">
-                      {formatCurrency(stats.total_value_processed, 'INR')}
-                    </p>
                   </motion.div>
                 </div>
 

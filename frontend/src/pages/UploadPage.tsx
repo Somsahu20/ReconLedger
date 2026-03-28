@@ -8,7 +8,6 @@ import { AxiosError } from 'axios'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { uploadInvoice } from '../api/invoices'
-import { UploadScene } from '../components/three/UploadScene'
 import { formatCurrency, formatDate } from '../lib/formatters'
 import type { InvoiceUploadResponse } from '../types/invoice'
 import { PageShell } from './PageShell'
@@ -150,7 +149,6 @@ export function UploadPage() {
   return (
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
-      <UploadScene />
       
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -460,7 +458,7 @@ export function UploadPage() {
 function SparklesIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0z" />
+      <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
     </svg>
   );
 }

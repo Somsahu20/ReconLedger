@@ -8,6 +8,9 @@ from app.config import settings
 from models.invoices import Invoice
 from utils.log import logger
 from starlette import status
+from utils.log import logger
+from pinecone import Pinecone
+from pinecone.models import ServerlessSpec
 
 # Global vector store instance
 _vector_store = None
@@ -23,24 +26,27 @@ def init_vector_store():
 
     global _vector_store, _collection
     
-    
-    os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
-    
-    chroma_client = chromadb.PersistentClient(
-        path=settings.CHROMA_PERSIST_DIR,
-        settings=ChromaSettings(
-            anonymized_telemetry=False,
-            allow_reset=True,
+    pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+    index_name = settings.INDEX_NAME
+    if not pc.has_index(index_name):
+        pc.create_index(
+            name=settings.INDEX_NAME,
+            dimension=3072,              
+            metric="cosine",            
+            spec=ServerlessSpec(
+                cloud=settings.PINECONE_CLOUD,
+                region=settings.PINECONE_LOC
+            )
         )
-    )
-    
-    # Get or create collection
-    _collection = chroma_client.get_or_create_collection(
-        name="invoices",
-        metadata={"description": "Invoice data for semantic search"}
-    )
-    
+    else:
+        logger.info(f"Index {settings.INDEX_NAME} already exists")
+
+    _collection = pc.Index(settings.INDEX_NAME)
+
     return _collection
+
+
+    
 
 def get_collection():
     global _collection
@@ -78,10 +84,11 @@ async def index_invoice(invoice: Invoice):
         
         #todo create or update records by ID
         collection.upsert(
-            ids=[doc_id],
-            embeddings=[embedding],
-            documents=[text_summary],
-            metadatas=[metadata]
+            vectors = [{
+                "id": doc_id,
+                "values": embedding,
+                "metadata": {**metadata, "document": text_summary}
+            }]
         )
     
     except Exception as err:
@@ -111,10 +118,7 @@ async def delete_invoice_from_index(invoice_id: str):
     collection = get_collection()
     collection.delete(ids=[invoice_id])
 
-async def search_invoices(query: str, top_k: int = None) -> List[dict]:
-    if top_k is None:
-        top_k = settings.CHROMA_TOP_K
-    
+async def search_invoices(query: str, top_k: int = settings.CHROMA_TOP_K) -> List[dict]:    
     collection = get_collection()
     
     try:
@@ -124,19 +128,23 @@ async def search_invoices(query: str, top_k: int = None) -> List[dict]:
         
         
         results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
+            vector=query_embedding,
+            top_k=top_k,
+            include_values=False,      
+            include_metadata=True  
         )
+
+        logger.info(results)
         
 
         documents = []
-        if results["ids"] and len(results["ids"]) > 0:
-            for i in range(len(results["ids"][0])):
+        if results.matches and len(results.matches) > 0:
+            for i in range(len(results.matches)):
                 documents.append({
-                    "id": results["ids"][0][i],
-                    "document": results["documents"][0][i],
-                    "metadata": results["metadatas"][0][i],
-                    "distance": results["distances"][0][i] if "distances" in results else None,
+                    "id": results.matches[i].id,
+                    "document": results.matches[i].metadata.get("document"),
+                    "metadata": results.matches[i].metadata,
+                    "distance": results.matches[i].score 
                 })
         
         return documents
@@ -144,3 +152,8 @@ async def search_invoices(query: str, top_k: int = None) -> List[dict]:
     except Exception as err:
         logger.error(f"Error in searching in invoices. The exact error is {err}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error in searching errors")
+
+        
+
+
+

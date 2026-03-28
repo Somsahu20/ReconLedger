@@ -100,7 +100,13 @@ async def process_query(question: str) -> Dict[str, Any]:
             "source_invoices": source_invoices,
             "num_documents_retrieved": len(retrieved_docs)
         }
+
+    
+    except HTTPException as he:
+        logger.error(f"Error in query_engine.process_query. The error is {err}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in query_engine.process_query")
     
     except Exception as err:
         logger.error(f"Error in query_engine.process_query. The error is {err}")
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Error in query_engine.process_query")
+

@@ -1,5 +1,5 @@
-import { Suspense, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Float, Sparkles } from '@react-three/drei'
 import type { Mesh } from 'three'
 
@@ -45,17 +45,13 @@ function OrbPulse() {
 
 export function UploadScene() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <Suspense fallback={null}>
-        <Canvas camera={{ position: [0, 0, 6], fov: 52 }}>
-          <ambientLight intensity={0.65} />
-          <directionalLight position={[2, 2, 3]} intensity={1.1} color="#7aa4f5" />
-          <DocMesh position={[-2.3, 1.2, -1]} rotation={[0.2, -0.35, 0.2]} />
-          <DocMesh position={[1.8, 1.7, -2]} rotation={[-0.1, 0.3, -0.15]} />
-          <OrbPulse />
-          <Sparkles count={120} speed={0.26} size={2.2} scale={[8, 8, 8]} color="#c3dcff" />
-        </Canvas>
-      </Suspense>
-    </div>
+    <>
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[2, 2, 3]} intensity={1.1} color="#7aa4f5" />
+      <DocMesh position={[-2.3, 1.2, -1]} rotation={[0.2, -0.35, 0.2]} />
+      <DocMesh position={[1.8, 1.7, -2]} rotation={[-0.1, 0.3, -0.15]} />
+      <OrbPulse />
+      <Sparkles count={120} speed={0.26} size={2.2} scale={[8, 8, 8]} color="#c3dcff" />
+    </>
   )
 }

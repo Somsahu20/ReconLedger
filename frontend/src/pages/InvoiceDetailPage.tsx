@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ArrowLeft, AlertTriangle, CheckCircle2, FileSearch, RefreshCw } from 'lucide-react'
 import { AxiosError } from 'axios'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { getInvoiceByNumber } from '../api/invoices'
-import { InvoicesScene } from '../components/three/InvoicesScene'
 import { formatCurrency, formatDate, toStatusLabel } from '../lib/formatters'
 import { PageShell } from './PageShell'
 
@@ -34,7 +35,6 @@ export function InvoiceDetailPage() {
   return (
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
-      <InvoicesScene />
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -232,10 +232,23 @@ export function InvoiceDetailPage() {
                         {isFlagged ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                         AI Processing Diagnostic
                       </h3>
-                      <div className={`text-[13px] leading-relaxed max-w-4xl font-medium ${isFlagged ? 'text-amber-200/90' : 'text-emerald-200/90'}`}>
-                        {data.audit_report.split('\n').map((line, i) => (
-                          <p key={i} className={line.trim() ? "mb-2" : "mb-0"}>{line}</p>
-                        ))}
+                      <div className={`text-[13px] leading-relaxed max-w-4xl prose prose-invert prose-sm ${isFlagged ? 'prose-amber' : 'prose-emerald'}`}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({ children }) => <p className="mb-3 leading-relaxed last:mb-0">{children}</p>,
+                            h1: ({ children }) => <h1 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-semibold text-white mt-4 mb-2">{children}</h2>,
+                            h3: ({ children }) => <h3 className={`text-sm font-bold mt-4 mb-2 ${isFlagged ? 'text-amber-300' : 'text-emerald-300'}`}>{children}</h3>,
+                            strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                            ul: ({ children }) => <ul className="my-3 list-disc space-y-1.5 pl-5">{children}</ul>,
+                            ol: ({ children }) => <ol className="my-3 list-decimal space-y-1.5 pl-5">{children}</ol>,
+                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                            hr: () => <hr className={`my-4 border-0 border-t ${isFlagged ? 'border-amber-500/20' : 'border-emerald-500/20'}`} />,
+                          }}
+                        >
+                          {data.audit_report}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   </motion.div>

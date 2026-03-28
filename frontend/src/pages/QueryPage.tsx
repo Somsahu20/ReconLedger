@@ -7,7 +7,6 @@ import { Link } from 'react-router-dom'
 import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
 import { askInvoiceQuery } from '../api/query'
-import { QueryScene } from '../components/three/QueryScene'
 import type { ChatMessage } from '../types/query'
 import { PageShell } from './PageShell'
 
@@ -154,7 +153,6 @@ export function QueryPage() {
   return (
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
-      <QueryScene />
 
       <motion.div
         variants={pageVariants}

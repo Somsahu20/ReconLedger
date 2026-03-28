@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { CalendarRange, ChevronLeft, ChevronRight, SlidersHorizontal, Search, FileText, LoaderCircle } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { listInvoices } from '../api/invoices'
-import { InvoicesScene } from '../components/three/InvoicesScene'
 import { formatCurrency, formatDate, toStatusLabel } from '../lib/formatters'
 import { PageShell } from './PageShell'
 
@@ -110,7 +109,6 @@ export function InvoicesPage() {
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
       <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-blue-900/10 blur-[120px]" />
-      <InvoicesScene />
       
       <motion.div
         initial="initial"
@@ -124,7 +122,7 @@ export function InvoicesPage() {
           description="Search and filter invoices, browse paginated results, and open full invoice details for deeper review."
         >
           <div className="space-y-6">
-            <div className="grid gap-4 rounded-[2rem] border border-white/5 bg-white/[0.02] shadow-[0_8px_32px_rgba(0,0,0,0.2)] p-5 md:grid-cols-2 xl:grid-cols-5 backdrop-blur-2xl relative overflow-hidden">
+            <div className="grid gap-4 rounded-4xl border border-white/5 bg-white/2 shadow-[0_8px_32px_rgba(0,0,0,0.2)] p-5 md:grid-cols-2 xl:grid-cols-5 backdrop-blur-2xl relative overflow-hidden">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
               
               <div className="relative z-10 xl:col-span-2">
@@ -222,7 +220,7 @@ export function InvoicesPage() {
             {isLoading && (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[0, 1, 2, 3, 4, 5].map((index) => (
-                  <div key={index} className="h-32 animate-pulse rounded-[1.5rem] bg-white/5 ring-1 ring-white/10" />
+                  <div key={index} className="h-32 animate-pulse rounded-3xl bg-white/5 ring-1 ring-white/10" />
                 ))}
               </div>
             )}
@@ -243,7 +241,7 @@ export function InvoicesPage() {
             )}
 
             {!isLoading && !isError && !hasRows && (
-              <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-12 text-center ring-1 ring-white/5 shadow-inner backdrop-blur-xl">
+              <div className="rounded-4xl border border-white/5 bg-white/2 p-12 text-center ring-1 ring-white/5 shadow-inner backdrop-blur-xl">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-(--muted) mb-5">
                   <FileText className="h-8 w-8" />
                 </div>
@@ -260,10 +258,10 @@ export function InvoicesPage() {
 
             {!isLoading && !isError && hasRows && (
               <>
-                <div className="hidden overflow-hidden rounded-[2rem] bg-white/[0.02] ring-1 ring-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-2xl md:block">
+                <div className="hidden overflow-hidden rounded-4xl bg-white/2 ring-1 ring-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-2xl md:block">
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-white/[0.02] text-[11px] font-bold uppercase tracking-widest text-(--muted) border-b border-white/10">
+                      <thead className="bg-white/2 text-[11px] font-bold uppercase tracking-widest text-(--muted) border-b border-white/10">
                         <tr>
                           <th className="px-5 py-4 font-medium">Invoice Reference</th>
                           <th className="px-5 py-4 font-medium">Vendor Target</th>
@@ -323,7 +321,7 @@ export function InvoicesPage() {
                         key={invoice.id}
                         whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        className="rounded-[1.5rem] bg-white/[0.03] p-5 ring-1 ring-white/10 backdrop-blur-md"
+                        className="rounded-3xl bg-white/3 p-5 ring-1 ring-white/10 backdrop-blur-md"
                       >
                         <div className="flex items-start justify-between gap-2 mb-4">
                           <div>
@@ -348,7 +346,7 @@ export function InvoicesPage() {
                   })}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/[0.02] ring-1 ring-white/10 px-5 py-3.5 text-sm backdrop-blur-md">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/2 ring-1 ring-white/10 px-5 py-3.5 text-sm backdrop-blur-md">
                   <p className="text-(--muted) text-[13px] font-medium tracking-wide">
                     Vector Range <span className="text-white mx-1">{page}</span> of <span className="text-white mx-1">{totalPages}</span>
                   </p>

@@ -1,5 +1,5 @@
-import { Suspense, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Float, Sparkles } from '@react-three/drei'
 import type { Group } from 'three'
 
@@ -52,16 +52,12 @@ function FocusOrb() {
 
 export function InvoicesScene() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <Suspense fallback={null}>
-        <Canvas camera={{ position: [0, 0, 6], fov: 52 }}>
-          <ambientLight intensity={0.56} />
-          <directionalLight position={[1.8, 2.2, 2.6]} intensity={1.08} color="#76a6f0" />
-          <RotatingDocs />
-          <FocusOrb />
-          <Sparkles count={95} speed={0.28} size={2.15} color="#bddcff" scale={[8, 8, 8]} />
-        </Canvas>
-      </Suspense>
-    </div>
+    <>
+      <ambientLight intensity={0.56} />
+      <directionalLight position={[1.8, 2.2, 2.6]} intensity={1.08} color="#76a6f0" />
+      <RotatingDocs />
+      <FocusOrb />
+      <Sparkles count={95} speed={0.28} size={2.15} color="#bddcff" scale={[8, 8, 8]} />
+    </>
   )
 }

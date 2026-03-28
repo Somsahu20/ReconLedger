@@ -37,6 +37,11 @@ class Settings(BaseSettings):
 
     MAX_FILE_SIZE_MB:int
 
+    PINECONE_API_KEY: str
+    PINECONE_CLOUD: str
+    PINECONE_LOC: str
+    INDEX_NAME: str
+
     model_config = SettingsConfigDict(
         env_file=str(ENV_PATH),
         env_file_encoding="utf-8",

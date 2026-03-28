@@ -20,7 +20,6 @@ import {
   getReviewedInvoices,
   resolveFlaggedInvoice,
 } from '../api/reviews'
-import { ReviewScene } from '../components/three/ReviewScene'
 import { formatCurrency, formatDate } from '../lib/formatters'
 import type { FlaggedInvoiceItem, ReviewHistoryItem } from '../types/review'
 import { PageShell } from './PageShell'
@@ -147,7 +146,6 @@ export function ReviewPage() {
   return (
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
-      <ReviewScene />
 
       <motion.div
         variants={pageVariants}
@@ -413,7 +411,7 @@ export function ReviewPage() {
                         )}
                       </div>
 
-                      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl lg:sticky lg:top-24 h-fit">
+                      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl lg:sticky lg:top-24 h-fit min-w-0 overflow-hidden">
                         <h3 className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-widest text-(--muted) mb-5">
                           <MessageSquareText className="h-4 w-4" />
                           Activity Ledger
@@ -424,26 +422,26 @@ export function ReviewPage() {
                             <p className="text-sm text-(--muted)">No recent operational entries.</p>
                           </div>
                         ) : (
-                          <div className="space-y-3 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/5 before:to-transparent">
+                          <div className="space-y-2">
                             {reviewHistory?.slice(0, 6).map((item) => (
                               <motion.div
                                 key={item.id}
                                 initial={{ opacity: 0, x: 10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-[13px] backdrop-blur-md shadow-sm ml-7 md:ml-0"
+                                className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[12px] backdrop-blur-md"
                               >
-                                <div className="absolute top-5 -left-8 md:hidden h-2 w-2 rounded-full bg-(--brand) ring-4 ring-[#070d1f]" />
-                                
-                                <div className="flex items-center justify-between gap-2 mb-2">
-                                  <p className="font-semibold text-white flex items-center gap-2">
-                                    <div className="h-5 w-5 rounded-full bg-(--brand)/20 flex items-center justify-center text-[10px] text-(--brand)">
+                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="h-5 w-5 rounded-full bg-(--brand)/20 flex items-center justify-center text-[10px] text-(--brand) shrink-0">
                                       {reviewerName(item).charAt(0).toUpperCase()}
                                     </div>
-                                    {reviewerName(item)}
-                                  </p>
-                                  <p className="text-[11px] text-(--muted) font-mono">{formatDate(item.reviewed_at)}</p>
+                                    <p className="font-semibold text-white/90 truncate text-[11px]">{reviewerName(item)}</p>
+                                  </div>
+                                  <p className="text-[10px] text-(--muted) font-mono shrink-0">{formatDate(item.reviewed_at)}</p>
                                 </div>
-                                <p className="text-white/80 pl-7">{item.review_note || <span className="text-white/40 italic">System override applied.</span>}</p>
+                                <p className="text-white/60 text-[11px] leading-relaxed pl-6 truncate">
+                                  {item.review_note || <span className="italic">System override applied.</span>}
+                                </p>
                               </motion.div>
                             ))}
                           </div>

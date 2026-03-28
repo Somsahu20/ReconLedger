@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { AuthScene } from '../three/AuthScene'
 
 type Feature = {
   label: string
@@ -36,7 +35,6 @@ export function AuthSplitLayout({
 
   return (
     <section className="relative isolate overflow-hidden px-4 py-10 sm:px-6 sm:py-14 lg:py-16 min-h-screen flex items-center">
-      <AuthScene />
       <div className="auth-noise pointer-events-none absolute inset-0 -z-10 opacity-60" />
 
       {/* Tonal Architecture without 1px borders for dark mode */}

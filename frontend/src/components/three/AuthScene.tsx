@@ -1,6 +1,5 @@
-import { Suspense } from 'react'
 import { useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { Float, Sparkles } from '@react-three/drei'
 import type { Mesh } from 'three'
 
@@ -45,24 +44,20 @@ function OrbitRing({ color, size, speed }: { color: string; size: number; speed:
 
 export function AuthScene() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10">
-      <Suspense fallback={null}>
-        <Canvas camera={{ position: [0, 0, 5] }} dpr={[1, 1.8]}>
-          <fog attach="fog" args={['#0c1629', 4, 11]} />
-          <ambientLight intensity={0.55} />
-          <pointLight position={[2.5, 1.6, 2]} intensity={1.3} color="#2ca99a" />
-          <pointLight position={[-2.2, -1.2, 1.8]} intensity={0.95} color="#4c91ec" />
+    <>
+      <fog attach="fog" args={['#0c1629', 4, 11]} />
+      <ambientLight intensity={0.55} />
+      <pointLight position={[2.5, 1.6, 2]} intensity={1.3} color="#2ca99a" />
+      <pointLight position={[-2.2, -1.2, 1.8]} intensity={0.95} color="#4c91ec" />
 
-          <group scale={1.05}>
-            <SpinningCore color="#7ce5d8" />
-            <OrbitRing color="#36c2b2" size={1.45} speed={0.24} />
-            <OrbitRing color="#4c91ec" size={1.85} speed={-0.18} />
-          </group>
+      <group scale={1.05}>
+        <SpinningCore color="#7ce5d8" />
+        <OrbitRing color="#36c2b2" size={1.45} speed={0.24} />
+        <OrbitRing color="#4c91ec" size={1.85} speed={-0.18} />
+      </group>
 
-          <Sparkles count={140} size={2} scale={[8, 8, 8]} speed={0.18} color="#d9f6ff" />
-          <Sparkles count={80} size={1.3} scale={[6, 6, 6]} speed={0.35} color="#90b5ff" />
-        </Canvas>
-      </Suspense>
-    </div>
+      <Sparkles count={140} size={2} scale={[8, 8, 8]} speed={0.18} color="#d9f6ff" />
+      <Sparkles count={80} size={1.3} scale={[6, 6, 6]} speed={0.35} color="#90b5ff" />
+    </>
   )
 }

@@ -19,7 +19,6 @@ import {
   listReconciliationSessions,
   uploadReconciliationListing,
 } from '../api/reconciliation'
-import { ReconciliationScene } from '../components/three/ReconciliationScene'
 import { formatCurrency, formatDate } from '../lib/formatters'
 import type {
   ReconciliationFilterStatus,
@@ -178,7 +177,6 @@ export function ReconciliationPage() {
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
       <div className="pointer-events-none absolute top-40 -left-40 h-96 w-96 rounded-full bg-emerald-900/10 blur-[120px]" />
-      <ReconciliationScene />
 
       <motion.div
         variants={pageVariants}
@@ -323,7 +321,7 @@ export function ReconciliationPage() {
                 </div>
               </section>
 
-              <section className="rounded-[2rem] border border-white/5 bg-white/[0.01] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl flex flex-col">
+              <section className="rounded-[2rem] border border-white/5 bg-white/[0.01] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl flex flex-col min-w-0 overflow-hidden">
                 {!sessionId && (
                   <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-12 text-center shadow-inner h-full flex flex-col items-center justify-center min-h-[400px]">
                     <div className="flex bg-white/5 h-20 w-20 rounded-[2rem] items-center justify-center mb-6 ring-1 ring-white/10">
@@ -371,25 +369,6 @@ export function ReconciliationPage() {
 
                     {report && (
                       <>
-                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5 relative overflow-hidden backdrop-blur-md">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted) mb-2">Total Vectors</p>
-                            <p className="text-3xl font-light text-white">{report.summary.total}</p>
-                          </div>
-                          <div className="rounded-[1.5rem] border border-emerald-500/20 bg-emerald-500/5 p-5 relative overflow-hidden backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-2">Clean Match</p>
-                            <p className="text-3xl font-light text-emerald-400">{report.summary.matched}</p>
-                          </div>
-                          <div className="rounded-[1.5rem] border border-amber-500/20 bg-amber-500/5 p-5 relative overflow-hidden backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-2">Deviant Vectors</p>
-                            <p className="text-3xl font-light text-amber-400">{report.summary.mismatched}</p>
-                          </div>
-                          <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/5 p-5 relative overflow-hidden backdrop-blur-md shadow-[0_0_15px_rgba(239,68,68,0.05)]">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-2">Null Entities</p>
-                            <p className="text-3xl font-light text-red-400">{report.summary.missing}</p>
-                          </div>
-                        </div>
-
                         <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-5 py-4 flex items-center justify-between backdrop-blur-md shadow-inner">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">

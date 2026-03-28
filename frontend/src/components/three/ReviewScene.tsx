@@ -1,5 +1,5 @@
-import { Suspense, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Float, Sparkles, useDetectGPU } from '@react-three/drei'
 import type { Group } from 'three'
 
@@ -59,16 +59,12 @@ function AdaptiveSparkles() {
 
 export function ReviewScene() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <Suspense fallback={null}>
-        <Canvas camera={{ position: [0, 0, 6], fov: 52 }}>
-          <ambientLight intensity={0.58} />
-          <directionalLight position={[2, 2, 2.8]} intensity={1.06} color="#818cf8" />
-          <BadgeCloud />
-          <PulseNode />
-          <AdaptiveSparkles />
-        </Canvas>
-      </Suspense>
-    </div>
+    <>
+      <ambientLight intensity={0.58} />
+      <directionalLight position={[2, 2, 2.8]} intensity={1.06} color="#818cf8" />
+      <BadgeCloud />
+      <PulseNode />
+      <AdaptiveSparkles />
+    </>
   )
 }

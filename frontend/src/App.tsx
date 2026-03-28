@@ -24,12 +24,15 @@ function RouteLoadingFallback() {
   )
 }
 
+import { SceneHost } from './components/three/SceneHost'
+
 function App() {
   const { user } = useAuth()
   useTheme(user?.id)
 
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
+      <SceneHost />
       <PointerEffects />
       <Routes>
         <Route element={<PublicOnlyRoute />}>

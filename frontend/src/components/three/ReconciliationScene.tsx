@@ -1,5 +1,5 @@
-import { Suspense, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Float, Sparkles, useDetectGPU } from '@react-three/drei'
 import type { Group } from 'three'
 
@@ -40,15 +40,11 @@ function AdaptiveParticles() {
 
 export function ReconciliationScene() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <Suspense fallback={null}>
-        <Canvas camera={{ position: [0, 0, 6], fov: 52 }}>
-          <ambientLight intensity={0.58} />
-          <directionalLight position={[2, 2, 3]} intensity={1.06} color="#818cf8" />
-          <LedgerForms />
-          <AdaptiveParticles />
-        </Canvas>
-      </Suspense>
-    </div>
+    <>
+      <ambientLight intensity={0.58} />
+      <directionalLight position={[2, 2, 3]} intensity={1.06} color="#818cf8" />
+      <LedgerForms />
+      <AdaptiveParticles />
+    </>
   )
 }
