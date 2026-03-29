@@ -97,7 +97,7 @@ export function InvoiceDetailPage() {
                 >
                   <div className="col-span-1 xl:col-span-2">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted) mb-1.5 flex items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-(--brand)" />Vendor Target
+                      <span className="h-1.5 w-1.5 rounded-full bg-(--brand) inline-block" />Vendor Target
                     </p>
                     <p className="font-medium text-white text-base truncate pr-2">{data.vendor_name}</p>
                   </div>

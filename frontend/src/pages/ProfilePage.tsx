@@ -38,12 +38,12 @@ export function ProfilePage() {
     event.preventDefault()
 
     if (newPassword.length < 8) {
-      toast.error('Cryptographic key must exceed 8 entropy units')
+      toast.error('Password must have at least 8 characters')
       return
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Cryptographic key signatures do not match')
+      toast.error('Passwords do not match')
       return
     }
 
@@ -54,12 +54,12 @@ export function ProfilePage() {
         new_password: newPassword,
         confirm_password: confirmPassword,
       })
-      toast.success('Encryption layer rotated successfully')
+      toast.success('Password changed successfully')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
     } catch {
-      toast.error('Encryption rotation failed system check')
+      toast.error('Password didn\'t change')
     } finally {
       setIsSavingPassword(false)
     }
@@ -73,7 +73,7 @@ export function ProfilePage() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-indigo-900/10 via-[#070d1f] to-[#070d1f]" />
       
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <PageShell title="Operator Profile" description="Manage cryptographic identity and securely rotate access credentials.">
+        <PageShell title="Operator Profile" description="Manage identity and change password.">
           <div className="grid gap-6 md:grid-cols-2 lg:gap-8 max-w-4xl mx-auto pt-6">
             <motion.form 
               initial={{ opacity: 0, y: 16 }}
@@ -94,7 +94,7 @@ export function ProfilePage() {
               <div className="space-y-5 relative z-10">
                 <label className="block">
                   <span className={labelClass}>
-                    Primary Vector (Email)
+                    Primary Email
                   </span>
                   <input
                     readOnly
@@ -106,7 +106,7 @@ export function ProfilePage() {
 
                 <label className="block">
                   <span className={labelClass}>
-                    Operator Designation
+                    User name
                   </span>
                   <input
                     type="text"
@@ -148,13 +148,13 @@ export function ProfilePage() {
                 <div className="h-10 w-10 rounded-[1rem] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
                   <Lock className="h-5 w-5" />
                 </div>
-                <h2 className="text-lg font-light tracking-wide text-white">Cryptographic Rotation</h2>
+                <h2 className="text-lg font-light tracking-wide text-white">Change Password</h2>
               </div>
 
               <div className="space-y-5 relative z-10">
                 <label className="block">
                   <span className={labelClass}>
-                    Current Node Key
+                    Current Password
                   </span>
                   <input
                     type="password"
@@ -168,7 +168,7 @@ export function ProfilePage() {
                 <div className="pt-2 border-t border-white/5">
                   <label className="block mt-4 mb-5">
                     <span className={labelClass}>
-                      New Node Key
+                      Enter new password
                     </span>
                     <input
                       type="password"
@@ -181,7 +181,7 @@ export function ProfilePage() {
 
                   <label className="block">
                     <span className={labelClass}>
-                      Verify New Node Key
+                      Verify new password
                     </span>
                     <input
                       type="password"
@@ -203,9 +203,9 @@ export function ProfilePage() {
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500/[0.15] text-amber-500 ring-1 ring-amber-500/30 px-4 py-3.5 text-[13px] font-semibold tracking-wide uppercase transition-all hover:bg-amber-500/25 hover:ring-amber-500/50 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-amber-500/[0.15] disabled:hover:ring-amber-500/30"
                 >
                   {isSavingPassword ? (
-                    <><LoaderCircle className="h-4 w-4 animate-spin" /> Committing Hash...</>
+                    <><LoaderCircle className="h-4 w-4 animate-spin" /> Changing Password...</>
                   ) : (
-                    <><Shield className="h-4 w-4" /> Execute Rotation</>
+                    <><Shield className="h-4 w-4" /> Change Password</>
                   )}
                 </motion.button>
               </div>

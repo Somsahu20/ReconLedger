@@ -17,7 +17,12 @@ from app.database import Base
 database_url = settings.DATABASE_URL
 
 if database_url.startswith("postgresql+asyncpg://"):
-    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    database_url = database_url.replace(
+        "postgresql+asyncpg://", 
+        "postgresql+psycopg2://",   
+        1
+    )
+
 
 
 
@@ -81,6 +86,9 @@ def run_migrations_online() -> None:
 
     connectable = create_engine(
         database_url,
+        connect_args={
+            "sslmode": "require"
+        } if "neon.tech" in database_url else {},
         poolclass=pool.NullPool,
     )
 
@@ -98,3 +106,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+

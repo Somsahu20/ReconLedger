@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Float, Sparkles } from '@react-three/drei'
+import { Float } from '@react-three/drei'
 import type { Group } from 'three'
 
 function RotatingDocs() {
@@ -57,7 +57,6 @@ export function InvoicesScene() {
       <directionalLight position={[1.8, 2.2, 2.6]} intensity={1.08} color="#76a6f0" />
       <RotatingDocs />
       <FocusOrb />
-      <Sparkles count={95} speed={0.28} size={2.15} color="#bddcff" scale={[8, 8, 8]} />
     </>
   )
 }

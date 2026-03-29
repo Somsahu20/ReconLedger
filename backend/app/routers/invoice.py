@@ -68,7 +68,7 @@ async def upload_invoice(request: Request, file: UploadFile = File(...), current
     invoice = await invoice_service.create_invoice(db, invoice_data, validation_result, current_user.id, status_value, audit_report)
     
     # Generate the embeddings
-    await index_invoice(invoice)
+    await index_invoice(invoice, current_user.id)
     
     message = "Invoice processed successfully" if all_passed else "Invoice flagged for review"
     

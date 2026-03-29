@@ -7,6 +7,7 @@ from app.services.vector_store import search_invoices
 from app.services.extractor import MODEL
 from fastapi import HTTPException
 from starlette import status
+import uuid
 
 QUERY_SYSTEM_PROMPT = """
 You are ReconLedger, an expert AI financial assistant. 
@@ -48,10 +49,10 @@ Invoice Data:
 Provide a clear, accurate answer. Reference specific invoice numbers where applicable.
 """
 
-async def process_query(question: str) -> Dict[str, Any]:
+async def process_query(question: str, user_id: uuid.UUID) -> Dict[str, Any]:
     
     try:
-        retrieved_docs = await search_invoices(question, top_k=settings.CHROMA_TOP_K)
+        retrieved_docs = await search_invoices(question, user_id, top_k=settings.CHROMA_TOP_K)
         
         if not retrieved_docs:
             return {

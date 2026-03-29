@@ -11,6 +11,7 @@ from starlette import status
 from utils.log import logger
 from pinecone import Pinecone
 from pinecone.models import ServerlessSpec
+import uuid
 
 # Global vector store instance
 _vector_store = None
@@ -54,7 +55,7 @@ def get_collection():
         _collection = init_vector_store()
     return _collection
 
-async def index_invoice(invoice: Invoice):
+async def index_invoice(invoice: Invoice, user_id: uuid.UUID):
     
     #todo Index an invoice in ChromaDB for semantic search.
     
@@ -72,6 +73,7 @@ async def index_invoice(invoice: Invoice):
         
         #? Store in ChromaDB
         doc_id = str(invoice.id)
+        u_id = str(user_id)
         
         metadata = {
             "invoice_number": invoice.invoice_number,
@@ -80,6 +82,7 @@ async def index_invoice(invoice: Invoice):
             "grand_total": float(invoice.grand_total),
             "currency": invoice.currency,
             "status": invoice.status.value,
+            "uploaded_by": u_id
         }
         
         #todo create or update records by ID
@@ -118,7 +121,7 @@ async def delete_invoice_from_index(invoice_id: str):
     collection = get_collection()
     collection.delete(ids=[invoice_id])
 
-async def search_invoices(query: str, top_k: int = settings.CHROMA_TOP_K) -> List[dict]:    
+async def search_invoices(query: str, user_id: uuid.UUID, top_k: int = settings.CHROMA_TOP_K) -> List[dict]:    
     collection = get_collection()
     
     try:
@@ -131,10 +134,13 @@ async def search_invoices(query: str, top_k: int = settings.CHROMA_TOP_K) -> Lis
             vector=query_embedding,
             top_k=top_k,
             include_values=False,      
-            include_metadata=True  
+            include_metadata=True,  
+            filter={
+                "uploaded_by": {"$eq": str(user_id)} 
+            }
         )
 
-        logger.info(results)
+        # logger.info(results)
         
 
         documents = []

@@ -5,8 +5,19 @@ from app.config import settings
 
 
 engine = create_async_engine(
-    url=settings.DATABASE_URL,
-    echo=True,
+    url=settings.ASYNC_DATABASE_URL,
+    echo=True, #! MAKE IT FALSE IN PROD
+    future=True,
+    connect_args={
+        "ssl": "require"
+    },
+
+    pool_size=5,
+    max_overflow=2,
+    pool_recycle=300,
+    pool_pre_ping=True,
+    pool_timeout=30
+
 )
 
 

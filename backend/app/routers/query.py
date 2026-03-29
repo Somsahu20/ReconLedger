@@ -15,7 +15,7 @@ async def query_invoices(request: Request, query_data: QueryRequest, current_use
 
     
     try:
-        result = await process_query(query_data.question)
+        result = await process_query(query_data.question, current_user.id)
         return QueryResponse(**result)
     except Exception as err:
         logger.error(f"Error is query.query_invoice. The error is {err}")

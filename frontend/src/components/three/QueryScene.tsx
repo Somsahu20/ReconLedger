@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Float, Sparkles, useDetectGPU } from '@react-three/drei'
+import { Float } from '@react-three/drei'
 import type { Group } from 'three'
 
 function QueryGlyphs() {
@@ -30,20 +30,13 @@ function QueryGlyphs() {
   )
 }
 
-function AdaptiveSparkleField() {
-  const gpuTier = useDetectGPU()
-  const count = gpuTier.tier >= 3 ? 160 : gpuTier.tier >= 2 ? 105 : 60
-
-  return <Sparkles count={count} speed={0.24} size={2.1} scale={[8, 8, 8]} color="#c7d2fe" />
-}
-
 export function QueryScene() {
   return (
     <>
       <ambientLight intensity={0.58} />
       <directionalLight position={[2, 2, 2.8]} intensity={1.06} color="#818cf8" />
       <QueryGlyphs />
-      <AdaptiveSparkleField />
     </>
   )
 }
+

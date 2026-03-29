@@ -8,6 +8,20 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+
+        url = self.DATABASE_URL
+
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://")
+
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://")
+
+        return url
+        
+
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     ACCESS_TOKEN: int = 30

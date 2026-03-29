@@ -43,11 +43,11 @@ export function SceneHost() {
       <Suspense fallback={null}>
         <Canvas 
           camera={{ position: [0, 0, 6], fov: 52 }}
-          dpr={[1, 1.8]}
+          dpr={[1, 1.5]}
           gl={{ 
             powerPreference: 'high-performance',
             alpha: true,
-            antialias: true,
+            antialias: false,
             stencil: false,
             depth: true
           }}

@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Float, Sparkles, useDetectGPU } from '@react-three/drei'
+import { Float } from '@react-three/drei'
 import type { Group } from 'three'
 
 function BadgeCloud() {
@@ -50,13 +50,6 @@ function PulseNode() {
   )
 }
 
-function AdaptiveSparkles() {
-  const gpuTier = useDetectGPU()
-  const sparkleCount = gpuTier.tier >= 3 ? 140 : gpuTier.tier >= 2 ? 95 : 55
-
-  return <Sparkles count={sparkleCount} speed={0.24} size={2.1} scale={[8, 8, 8]} color="#c7d2fe" />
-}
-
 export function ReviewScene() {
   return (
     <>
@@ -64,7 +57,7 @@ export function ReviewScene() {
       <directionalLight position={[2, 2, 2.8]} intensity={1.06} color="#818cf8" />
       <BadgeCloud />
       <PulseNode />
-      <AdaptiveSparkles />
     </>
   )
 }
+

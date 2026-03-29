@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Float, Sparkles, useDetectGPU } from '@react-three/drei'
+import { Float } from '@react-three/drei'
 import type { Group } from 'three'
 
 function LedgerForms() {
@@ -31,20 +31,13 @@ function LedgerForms() {
   )
 }
 
-function AdaptiveParticles() {
-  const gpuTier = useDetectGPU()
-  const count = gpuTier.tier >= 3 ? 150 : gpuTier.tier >= 2 ? 95 : 55
-
-  return <Sparkles count={count} speed={0.24} size={2.1} color="#c7d2fe" scale={[8, 8, 8]} />
-}
-
 export function ReconciliationScene() {
   return (
     <>
       <ambientLight intensity={0.58} />
       <directionalLight position={[2, 2, 3]} intensity={1.06} color="#818cf8" />
       <LedgerForms />
-      <AdaptiveParticles />
     </>
   )
 }
+

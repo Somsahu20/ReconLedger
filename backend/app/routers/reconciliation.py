@@ -78,7 +78,7 @@ async def upload_listing(
         # Run reconciliation
         try:
             results = await run_reconciliation(
-                db, session.id, records, use_ai=use_ai
+                db, session.id, user.id, records, use_ai=use_ai
             )
         except Exception as e:
             session.status = ReconciliationStatus.FAILED

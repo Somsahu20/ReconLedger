@@ -133,6 +133,7 @@ async def parse_listing(file_bytes: bytes, filename: str) -> list[dict]:
 async def run_reconciliation(
     db: AsyncSession,
     session_id: uuid.UUID,
+    user_id: uuid.UUID,
     listing_records: list[dict], #! Origin?
     use_ai: bool = True,
 ) -> dict:
@@ -146,7 +147,7 @@ async def run_reconciliation(
     """
     try: 
 
-        result = await db.execute(select(Invoice))
+        result = await db.execute(select(Invoice).where(Invoice.uploaded_by == user_id))
         all_invoices = result.scalars().all()
 
         

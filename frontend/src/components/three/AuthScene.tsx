@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Float, Sparkles } from '@react-three/drei'
+import { Float } from '@react-three/drei'
 import type { Mesh } from 'three'
 
 type SpinningCoreProps = {
@@ -55,9 +55,6 @@ export function AuthScene() {
         <OrbitRing color="#36c2b2" size={1.45} speed={0.24} />
         <OrbitRing color="#4c91ec" size={1.85} speed={-0.18} />
       </group>
-
-      <Sparkles count={140} size={2} scale={[8, 8, 8]} speed={0.18} color="#d9f6ff" />
-      <Sparkles count={80} size={1.3} scale={[6, 6, 6]} speed={0.35} color="#90b5ff" />
     </>
   )
 }
