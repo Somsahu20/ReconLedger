@@ -29,7 +29,7 @@ async def resolve_flagged_invoice(
     
     try:
         result = await db.execute(
-            select(Invoice).where(Invoice.id == invoice_id)
+            select(Invoice).where(Invoice.id == invoice_id, Invoice.uploaded_by == current_user.id)
         )
         invoice = result.scalar_one_or_none()
         

@@ -20,8 +20,10 @@ class RecentInvoice(BaseModel):
     invoice_number: str
     vendor_name: str
     grand_total: Decimal
+    currency: str
     status: InvoiceStatus
     processed_at: datetime | None = None
+    ai_processed: bool
 
     model_config = ConfigDict(from_attributes=True)
 

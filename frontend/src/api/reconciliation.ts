@@ -3,6 +3,8 @@ import type {
   ReconciliationFilterStatus,
   ReconciliationFilteredItemsResponse,
   ReconciliationReportResponse,
+  ResolveReconciliationItemPayload,
+  ResolveReconciliationItemResponse,
   ReconciliationSessionListItem,
   ReconciliationUploadResponse,
 } from '../types/reconciliation'
@@ -55,6 +57,27 @@ export async function getReconciliationItems(
       params: {
         status: status === 'all' ? undefined : status,
       },
+    },
+  )
+  return data
+}
+
+export async function resolveReconciliationItem(
+  itemId: string,
+  payload: ResolveReconciliationItemPayload,
+): Promise<ResolveReconciliationItemResponse> {
+  const normalizedAction =
+    payload.action === 'ACCEPT'
+      ? 'MANUALLY_APPROVED'
+      : payload.action === 'REJECT'
+        ? 'REJECTED'
+        : payload.action
+
+  const { data } = await api.post<ResolveReconciliationItemResponse>(
+    `/api/reconciliation/items/${encodeURIComponent(itemId)}/resolve`,
+    {
+      action: normalizedAction,
+      note: payload.note,
     },
   )
   return data

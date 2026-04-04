@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Menu, Moon, Sun, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../hooks/useTheme'
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard' },
@@ -18,7 +17,6 @@ const navItems = [
 
 export function AppLayout() {
   const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme(user?.id)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const mobileMenuId = 'mobile-primary-nav'
 
@@ -82,16 +80,6 @@ export function AppLayout() {
           </button>
 
           <div className="hidden items-center gap-4 lg:flex">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand)"
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-            <div className="h-4 w-px bg-white/10" />
             <span className="max-w-32 truncate text-[13px] font-medium text-(--muted)">
               {user?.full_name}
             </span>
@@ -136,13 +124,6 @@ export function AppLayout() {
               <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
                 <span className="truncate text-sm font-medium text-white">{user?.full_name}</span>
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--brand)"
-                  >
-                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  </button>
                   <button
                     type="button"
                     onClick={() => { void handleLogout() }}

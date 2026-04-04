@@ -23,6 +23,11 @@ class Result(str, Enum):
     MISSING = "MISSING"
     AI_MATCH = "AI_MATCH"
     AI_MATCHED_WITH_DISCREPANCIES = "AI_MATCHED_WITH_DISCREPANCIES"
+    DUPLICATE_BILLING = "DUPLICATE_BILLING" #! Add this to alembic migration
+
+class ResolutionStatus(str, Enum):
+    MANUALLY_APPROVED = "MANUALLY_APPROVED"
+    REJECTED = "REJECTED"
 
 
 class ReconciliationSession(Base):
@@ -47,19 +52,30 @@ class ReconciliationItem(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("reconciliation_sessions.id"))
     
     listing_invoice_number: Mapped[str] = mapped_column(String, nullable=False)
-    listing_vendor_name: Mapped[str] = mapped_column(String, nullable=False)
-    listing_date: Mapped[date] = mapped_column(Date, nullable=False)
-    listing_amount: Mapped[Decimal] = mapped_column(Numeric(12,2), nullable=False)
-    listing_tax_amount: Mapped[Decimal] = mapped_column(Numeric(12,2), nullable=False)
+    listing_vendor_name: Mapped[str] = mapped_column(String, nullable=True)
+    listing_date: Mapped[date] = mapped_column(Date, nullable=True)
+    listing_amount: Mapped[Decimal] = mapped_column(Numeric(12,2), nullable=True)
+    listing_tax_amount: Mapped[Decimal] = mapped_column(Numeric(12,2), nullable=True)
     
     # From actual invoice in system 
     matched_invoice_id: Mapped[uuid.UUID| None]  = mapped_column(UUID(as_uuid=True), ForeignKey("invoices.id"), nullable=True)
     
 
     status: Mapped[Result] = mapped_column(sqlEnum(Result), nullable=False, server_default=Result.MISSING.value)
-    
+
     
     discrepancies: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True) #! JSON string of mismatches
+
+    resolved_status: Mapped[ResolutionStatus | None] = mapped_column(sqlEnum(ResolutionStatus), nullable=True) 
+    resolution_note: Mapped[str | None] = mapped_column(String(500), nullable=True) 
+    resolution_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+    #! Newly added fields
+    listing_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    listing_po_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    listing_tax_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    listing_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     
     session: Mapped["ReconciliationSession"] = relationship("ReconciliationSession", back_populates="items")
     matched_invoice: Mapped[Optional["Invoice"]] = relationship("Invoice", back_populates="reconciliation_line_item")

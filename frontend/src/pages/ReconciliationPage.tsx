@@ -17,27 +17,23 @@ import {
   getReconciliationItems,
   getReconciliationReport,
   listReconciliationSessions,
+  resolveReconciliationItem,
   uploadReconciliationListing,
 } from '../api/reconciliation'
 import { formatCurrency, formatDate } from '../lib/formatters'
 import type {
-  ReconciliationFilterStatus,
+  ReconciliationFilteredItem,
+  ReconciliationReportItem,
   ReconciliationSessionListItem,
 } from '../types/reconciliation'
 import { PageShell } from './PageShell'
 
-const FILTERS: Array<{ label: string; value: ReconciliationFilterStatus }> = [
-  { label: 'All Operations', value: 'all' },
-  { label: 'Clean Matched', value: 'matched' },
-  { label: 'Missing Entities', value: 'missing' },
-  { label: 'Value Deviation', value: 'amount_mismatch' },
-  { label: 'Target Deviation', value: 'vendor_mismatch' },
-  { label: 'Temporal Deviation', value: 'date_mismatch' },
-  { label: 'Tax Deviation', value: 'tax_mismatch' },
-  { label: 'Complex Deviation', value: 'multiple_mismatch' },
-  { label: 'Neural Matched', value: 'ai_match' },
-  { label: 'Neural + Deviation', value: 'ai_matched_with_discrepancies' },
-]
+type ReviewQueueMode = 'all' | 'needs_review'
+
+const GREEN_STATUSES = new Set(['matched', 'ai_match'])
+const ORANGE_STATUSES = new Set(['ai_matched_with_discrepancies'])
+const STRICT_RED_STATUSES = new Set(['amount_mismatch', 'po_mismatch', 'duplicate_billing'])
+const RESOLVED_GREEN_STATUSES = new Set(['manually_approved', 'resolved'])
 
 const pageVariants = {
   initial: { opacity: 0, y: 16 },
@@ -51,13 +47,40 @@ function normalizeStatus(status: string) {
   return status.toLowerCase()
 }
 
+function toStatusLabel(status: string) {
+  return normalizeStatus(status).replaceAll('_', ' ')
+}
+
+function isNeedsReviewStatus(status: string) {
+  const normalized = normalizeStatus(status)
+  if (RESOLVED_GREEN_STATUSES.has(normalized)) return false
+  if (GREEN_STATUSES.has(normalized)) return false
+  return true
+}
+
+function isReviewableStatus(status: string) {
+  const normalized = normalizeStatus(status)
+  if (ORANGE_STATUSES.has(normalized)) return true
+  if (STRICT_RED_STATUSES.has(normalized)) return true
+  return normalized.includes('mismatch') || normalized === 'missing'
+}
+
 function statusClasses(status: string) {
   const normalized = normalizeStatus(status)
-  if (normalized === 'matched' || normalized === 'ai_match') {
+  if (GREEN_STATUSES.has(normalized)) {
     return 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
   }
+  if (RESOLVED_GREEN_STATUSES.has(normalized)) {
+    return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30 shadow-[0_0_14px_rgba(16,185,129,0.14)]'
+  }
+  if (ORANGE_STATUSES.has(normalized)) {
+    return 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+  }
+  if (STRICT_RED_STATUSES.has(normalized) || normalized.includes('mismatch')) {
+    return 'bg-red-500/10 text-red-300 ring-1 ring-red-500/25 shadow-[0_0_10px_rgba(239,68,68,0.12)]'
+  }
   if (normalized === 'missing') {
-    return 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]'
+    return 'bg-red-500/10 text-red-300 ring-1 ring-red-500/25 shadow-[0_0_10px_rgba(239,68,68,0.12)]'
   }
   if (normalized === 'pending') {
     return 'bg-slate-500/10 text-slate-300 ring-1 ring-slate-500/30'
@@ -71,6 +94,57 @@ function statusClasses(status: string) {
   return 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
 }
 
+type ReconciliationRowItem = ReconciliationFilteredItem | ReconciliationReportItem
+
+type ResolutionState = {
+  action: 'accepted' | 'rejected'
+  note: string
+  resolvedAt: string
+}
+
+function getRowKey(item: ReconciliationRowItem, index: number) {
+  const resolvedId = getItemId(item)
+  if (resolvedId) return resolvedId
+  return `${item.invoice_number}-${item.vendor}-${item.status}-${index}`
+}
+
+function getItemId(item: ReconciliationRowItem) {
+  const candidate = (item as { id?: unknown; item_id?: unknown; line_item_id?: unknown }).id
+    ?? (item as { id?: unknown; item_id?: unknown; line_item_id?: unknown }).item_id
+    ?? (item as { id?: unknown; item_id?: unknown; line_item_id?: unknown }).line_item_id
+  if (typeof candidate !== 'string') return null
+  const trimmed = candidate.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function getDiscrepancyNote(item: ReconciliationRowItem) {
+  if (!item.discrepancies || item.discrepancies.length === 0) {
+    return 'No discrepancy note available from AI analysis.'
+  }
+  return item.discrepancies.join(' | ')
+}
+
+function toFiniteNumber(value: unknown) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function getResolvedAction(item: ReconciliationRowItem): 'MANUALLY_APPROVED' | 'REJECTED' | null {
+  const resolved = normalizeStatus(item.resolved_status ?? '')
+  if (resolved === 'manually_approved') return 'MANUALLY_APPROVED'
+  if (resolved === 'rejected') return 'REJECTED'
+
+  const status = normalizeStatus(item.status)
+  if (status === 'manually_approved') return 'MANUALLY_APPROVED'
+  if (status === 'rejected') return 'REJECTED'
+
+  return null
+}
+
+function canOpenResolutionPanel(item: ReconciliationRowItem) {
+  return isReviewableStatus(item.status) || Boolean(getResolvedAction(item))
+}
+
 export function ReconciliationPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -79,7 +153,10 @@ export function ReconciliationPage() {
   const [listingName, setListingName] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [useAi, setUseAi] = useState(true)
-  const [activeFilter, setActiveFilter] = useState<ReconciliationFilterStatus>('all')
+  const [reviewQueueMode, setReviewQueueMode] = useState<ReviewQueueMode>('all')
+  const [selectedItem, setSelectedItem] = useState<ReconciliationRowItem | null>(null)
+  const [resolutionNote, setResolutionNote] = useState('')
+  const [resolvedRows, setResolvedRows] = useState<Record<string, ResolutionState>>({})
 
   const {
     data: sessions,
@@ -121,8 +198,8 @@ export function ReconciliationPage() {
     isError: isItemsError,
     refetch: refetchItems,
   } = useQuery({
-    queryKey: ['reconciliation', 'items', sessionId, activeFilter],
-    queryFn: () => getReconciliationItems(sessionId ?? '', activeFilter),
+    queryKey: ['reconciliation', 'items', sessionId],
+    queryFn: () => getReconciliationItems(sessionId ?? '', 'all'),
     enabled: Boolean(sessionId),
   })
 
@@ -143,9 +220,41 @@ export function ReconciliationPage() {
     },
   })
 
+  const resolveMutation = useMutation({
+    mutationFn: (params: { itemId: string; action: 'MANUALLY_APPROVED' | 'REJECTED'; note?: string; mode?: 'resolve' | 'note_update' }) =>
+      resolveReconciliationItem(params.itemId, {
+        action: params.action,
+        note: params.note,
+      }),
+    onSuccess: (_, variables) => {
+      const key = selectedItem?.id
+      if (key) {
+        setResolvedRows((prev) => ({
+          ...prev,
+          [key]: {
+            action: variables.action === 'MANUALLY_APPROVED' ? 'accepted' : 'rejected',
+            note: variables.note ?? '',
+            resolvedAt: new Date().toISOString(),
+          },
+        }))
+      }
+      if (variables.mode === 'note_update') {
+        toast.success('Resolution note updated.')
+      } else {
+        const actionText = variables.action === 'MANUALLY_APPROVED' ? 'accepted' : 'rejected'
+        toast.success(`Invoice discrepancy ${actionText}.`)
+      }
+      setSelectedItem(null)
+      setResolutionNote('')
+    },
+    onError: () => {
+      toast.error('Could not resolve this discrepancy. Please retry.')
+    },
+  })
+
   function selectSession(session: ReconciliationSessionListItem) {
     navigate(`/reconciliation/${session.id}`)
-    setActiveFilter('all')
+    setReviewQueueMode('all')
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -170,8 +279,102 @@ export function ReconciliationPage() {
     })
   }
 
-  const drilldownItems = filteredItems?.items ?? report?.items ?? []
-  const inputClass = "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none ring-1 ring-transparent transition-all focus:bg-white/10 focus:ring-(--brand)/50 backdrop-blur-md"
+  function openResolutionPanel(item: ReconciliationRowItem) {
+    const itemId = getItemId(item)
+    if (!itemId) {
+      toast.error('Resolution id missing for this row. Refresh session and retry.')
+      return
+    }
+    if (!canOpenResolutionPanel(item)) {
+      return
+    }
+    setSelectedItem({ ...item, id: itemId })
+    setResolutionNote(item.resolution_note ?? '')
+  }
+
+  function closeResolutionPanel() {
+    if (resolveMutation.isPending) return
+    setSelectedItem(null)
+    setResolutionNote('')
+  }
+
+  function submitResolution(action: 'MANUALLY_APPROVED' | 'REJECTED') {
+    const itemId = selectedItem ? getItemId(selectedItem) : null
+    if (!itemId) {
+      toast.error('Missing line-item identifier.')
+      return
+    }
+    resolveMutation.mutate({
+      itemId,
+      action,
+      note: resolutionNote.trim() || undefined,
+      mode: 'resolve',
+    })
+  }
+
+  function submitResolutionNoteUpdate() {
+    if (!selectedItem) return
+    const itemId = getItemId(selectedItem)
+    if (!itemId) {
+      toast.error('Missing line-item identifier.')
+      return
+    }
+
+    const existingAction = getResolvedAction(selectedItem)
+    if (!existingAction) {
+      toast.error('Resolve this discrepancy first before editing note only.')
+      return
+    }
+
+    resolveMutation.mutate({
+      itemId,
+      action: existingAction,
+      note: resolutionNote.trim() || undefined,
+      mode: 'note_update',
+    })
+  }
+
+  const drilldownItems = useMemo(
+    () => filteredItems?.items ?? report?.items ?? [],
+    [filteredItems?.items, report?.items],
+  )
+  const hydratedItems = useMemo(() => {
+    return drilldownItems.map((item) => {
+      const itemId = getItemId(item)
+      const resolution = itemId ? resolvedRows[itemId] : undefined
+      if (!resolution) return item
+      if (resolution.action === 'accepted') {
+        return {
+          ...item,
+          status: 'MANUALLY_APPROVED',
+          resolved_status: 'MANUALLY_APPROVED',
+          resolution_note: resolution.note,
+          resolution_date: resolution.resolvedAt,
+        }
+      }
+      return {
+        ...item,
+        status: 'REJECTED',
+        resolved_status: 'REJECTED',
+        resolution_note: resolution.note,
+        resolution_date: resolution.resolvedAt,
+      }
+    })
+  }, [drilldownItems, resolvedRows])
+  const visibleItems = useMemo(() => {
+    if (reviewQueueMode === 'all') return hydratedItems
+    return hydratedItems.filter((item) => isNeedsReviewStatus(item.status))
+  }, [hydratedItems, reviewQueueMode])
+
+  const totalProcessed = report?.summary.total ?? 0
+  const exactMatches = report?.summary.matched ?? 0
+  const discrepancyValue = toFiniteNumber((report?.summary as { net_difference?: unknown } | undefined)?.net_difference)
+  const aiRiskSummary =
+    report?.ai_analysis?.executive_summary?.trim() ||
+    report?.risk_summary?.trim() ||
+    'Gemini risk summary is not available for this session yet.'
+
+  const inputClass = "w-full max-w-full min-w-0 box-border rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none ring-1 ring-transparent transition-all focus:bg-white/10 focus:ring-(--brand)/50 backdrop-blur-md"
 
   return (
     <div className="relative min-h-[calc(100vh-(--spacing(16)))] pb-16">
@@ -191,10 +394,9 @@ export function ReconciliationPage() {
           description="Cross-examine external auditor listings against the verified central ledger using neural pattern matching."
         >
           <div className="space-y-8">
-            <form onSubmit={submitUpload} className="grid gap-4 rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-2xl lg:grid-cols-[1.5fr_1.5fr_auto] items-end relative overflow-hidden">
-              <div className="pointer-events-none absolute top-0 -left-20 w-40 h-full bg-gradient-to-r from-(--brand)/5 to-transparent blur-2xl transform -skew-x-12" />
+            <form onSubmit={submitUpload} className="grid gap-4 rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 sm:p-8 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-2xl lg:grid-cols-[1.5fr_1.5fr_auto] lg:items-end relative overflow-hidden isolate [contain:paint]">
               
-              <label className="relative z-10 block">
+              <label className="relative z-10 block w-full min-w-0">
                 <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-(--muted)">
                   Operation Identifier
                 </span>
@@ -206,25 +408,25 @@ export function ReconciliationPage() {
                 />
               </label>
 
-              <label className="relative z-10 block">
+              <label className="relative z-10 block w-full min-w-0">
                 <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-(--muted)">
                   Listing Artifact (.csv, .xlsx)
                 </span>
-                <div className="relative">
+                <div className="relative w-full min-w-0">
                   <input
                     type="file"
                     accept=".csv,.xlsx,.xls"
                     onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <div className={`${inputClass} flex items-center justify-between pointer-events-none font-mono ${selectedFile ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/5' : 'text-white/40 border-dashed border-white/20'}`}>
-                    <span className="truncate pr-4">{selectedFile ? selectedFile.name : 'Select or drop target file...'}</span>
+                  <div className={`${inputClass} flex items-center justify-between pointer-events-none font-mono overflow-hidden ${selectedFile ? 'text-emerald-300 border-emerald-500/20 bg-emerald-500/5' : 'text-white/40 border-dashed border-white/20'}`}>
+                    <span className="truncate pr-4 min-w-0">{selectedFile ? selectedFile.name : 'Select or drop target file...'}</span>
                     <FolderOpen className={`h-4 w-4 shrink-0 ${selectedFile ? 'text-emerald-400' : 'text-(--muted)'}`} />
                   </div>
                 </div>
               </label>
 
-              <div className="flex flex-col justify-end gap-3 relative z-10 min-w-[220px]">
+              <div className="flex flex-col justify-end gap-3 relative z-10 min-w-0 lg:min-w-[220px] w-full">
                 <label className="inline-flex items-center gap-2.5 text-[11px] font-semibold text-white/70 uppercase tracking-widest cursor-pointer group">
                   <div className="relative flex items-center justify-center">
                     <input
@@ -241,10 +443,10 @@ export function ReconciliationPage() {
 
                 <motion.button
                   type="submit"
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.985 }}
                   disabled={uploadMutation.isPending}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 text-sm font-semibold text-white disabled:opacity-50 disabled:grayscale transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:brightness-110"
+                  className="inline-flex h-12 w-full max-w-full min-w-0 box-border items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 text-sm font-semibold text-white disabled:opacity-50 disabled:grayscale transition-all hover:brightness-110 overflow-hidden"
                 >
                   {uploadMutation.isPending ? (
                     <>
@@ -369,33 +571,67 @@ export function ReconciliationPage() {
 
                     {report && (
                       <>
-                        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-5 py-4 flex items-center justify-between backdrop-blur-md shadow-inner">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                              <CheckCircle2 className="h-4 w-4" />
-                            </div>
-                            <span className="text-sm font-semibold text-indigo-100 uppercase tracking-widest">Consensus Rate</span>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-inner">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted)">Total Processed</p>
+                            <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{totalProcessed.toLocaleString('en-IN')}</p>
                           </div>
-                          <span className="text-2xl font-light tracking-tight text-indigo-400">{report.summary.match_rate}%</span>
+                          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 shadow-inner">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-200/80">Exact Matches</p>
+                            <p className="mt-2 text-2xl font-semibold tracking-tight text-emerald-300">{exactMatches.toLocaleString('en-IN')}</p>
+                          </div>
+                          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 shadow-inner">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-100/80">Total Discrepancy Value</p>
+                            <p className="mt-2 font-mono text-2xl font-semibold tracking-tight text-amber-300">
+                              {discrepancyValue != null
+                                ? formatCurrency(discrepancyValue, report.items[0]?.currency ?? 'INR')
+                                : '--'}
+                            </p>
+                          </div>
+                          <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-5 py-4 flex items-center justify-between backdrop-blur-md shadow-inner">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-semibold text-indigo-100 uppercase tracking-widest">Consensus Rate</span>
+                            </div>
+                            <span className="text-2xl font-light tracking-tight text-indigo-400">{report.summary.match_rate}%</span>
+                          </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {FILTERS.map((filter) => (
-                            <motion.button
-                              key={filter.value}
+                        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-rose-200/80">Gemini Risk Summary</p>
+                          <p className="mt-2 text-sm leading-relaxed text-rose-100/90">{aiRiskSummary}</p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                          <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.02] p-1">
+                            <button
                               type="button"
-                              whileHover={{ y: -1 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => setActiveFilter(filter.value)}
-                              className={`rounded-full border px-4 py-1.5 text-[11px] font-bold tracking-widest uppercase transition-colors ${
-                                activeFilter === filter.value
-                                  ? 'border-white/30 bg-white/10 text-white shadow-sm'
-                                  : 'border-white/5 bg-transparent text-(--muted) hover:bg-white/[0.02] hover:text-white/80'
+                              onClick={() => setReviewQueueMode('all')}
+                              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                                reviewQueueMode === 'all'
+                                  ? 'bg-white/10 text-white'
+                                  : 'text-(--muted) hover:text-white/80'
                               }`}
                             >
-                              {filter.label}
-                            </motion.button>
-                          ))}
+                              Show All
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setReviewQueueMode('needs_review')}
+                              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                                reviewQueueMode === 'needs_review'
+                                  ? 'bg-amber-500/15 text-amber-300'
+                                  : 'text-(--muted) hover:text-white/80'
+                              }`}
+                            >
+                              Needs Review
+                            </button>
+                          </div>
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-(--muted)">
+                            {visibleItems.length} records
+                          </p>
                         </div>
 
                         {(isItemsLoading || isReportLoading) && (
@@ -411,31 +647,39 @@ export function ReconciliationPage() {
                           </div>
                         )}
 
-                        {!isItemsLoading && !isItemsError && drilldownItems.length === 0 && (
+                        {!isItemsLoading && !isItemsError && visibleItems.length === 0 && (
                           <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-12 text-center shadow-inner backdrop-blur-xl">
                             <p className="text-sm font-medium text-white/50">Anomaly matrix empty for current parameters.</p>
                           </div>
                         )}
 
-                        {!isItemsLoading && !isItemsError && drilldownItems.length > 0 && (
+                        {!isItemsLoading && !isItemsError && visibleItems.length > 0 && (
                           <div className="overflow-hidden rounded-[1.5rem] border border-white/5 bg-white/[0.02] ring-1 ring-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-2xl">
-                            <div className="overflow-x-auto">
+                            <div className="max-h-[580px] overflow-auto">
                               <table className="min-w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-white/[0.02] text-[10px] font-bold uppercase tracking-widest text-(--muted) border-b border-white/10">
+                                <thead className="sticky top-0 z-10 bg-[#0f1527] text-[10px] font-bold uppercase tracking-widest text-(--muted) border-b border-white/10">
                                   <tr>
                                     <th className="px-5 py-4">Structure ID</th>
                                     <th className="px-5 py-4">Source Origin</th>
+                                    <th className="px-5 py-4">Listing Date</th>
                                     <th className="px-5 py-4">Asserted Value</th>
                                     <th className="px-5 py-4">Outcome</th>
-                                    <th className="px-5 py-4 w-1/3">Diagnostic Notes</th>
+                                    <th className="px-5 py-4">Resolution</th>
+                                    <th className="px-5 py-4 min-w-[120px]">Review Date</th>
+                                    <th className="px-5 py-4 min-w-[150px]">Note</th>
+                                    <th className="px-5 py-4 w-1/4">Diagnostic Notes</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                  {drilldownItems.map((item) => (
+                                  {visibleItems.map((item, index) => {
+                                    const rowKey = getRowKey(item, index)
+                                    const isReviewable = canOpenResolutionPanel(item)
+                                    return (
                                     <motion.tr
-                                      key={`${item.invoice_number}-${item.vendor}-${item.status}`}
+                                      key={rowKey}
                                       whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-                                      className="transition-colors group"
+                                      onClick={() => openResolutionPanel(item)}
+                                      className={`transition-colors group ${isReviewable ? 'cursor-pointer' : 'cursor-default'}`}
                                     >
                                       <td className="px-5 py-4 font-semibold text-white">
                                         <Link to={`/invoices/${item.invoice_number}`} className="hover:text-(--brand) transition-colors">
@@ -445,13 +689,52 @@ export function ReconciliationPage() {
                                       <td className="px-5 py-4 text-white/80 group-hover:text-white transition-colors">
                                         {item.vendor}
                                       </td>
+                                      <td className="px-5 py-4 text-(--muted) text-[13px]">
+                                        {formatDate(item.listing_date ?? null)}
+                                      </td>
                                       <td className="px-5 py-4 text-white/90 font-mono text-[13px]">
                                         {formatCurrency(item.listing_amount, item.currency ?? 'INR')}
                                       </td>
                                       <td className="px-5 py-4">
                                         <span className={`inline-flex rounded-sm px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest ${statusClasses(item.status)}`}>
-                                          {normalizeStatus(item.status)}
+                                          {toStatusLabel(item.status)}
                                         </span>
+                                      </td>
+                                      <td className="px-5 py-4">
+                                        {item.resolved_status ? (
+                                          <span className={`inline-flex items-center gap-1 rounded-sm px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
+                                            item.resolved_status === 'MANUALLY_APPROVED' 
+                                              ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25' 
+                                              : 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/25'
+                                          }`}>
+                                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                            {item.resolved_status === 'MANUALLY_APPROVED' ? 'Approved' : 'Rejected'}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] text-white/20 uppercase tracking-widest font-bold">Unreviewed</span>
+                                        )}
+                                      </td>
+                                      <td className="px-5 py-4 font-mono text-[11px] text-(--muted)">
+                                        {item.resolution_date ? formatDate(item.resolution_date) : '--'}
+                                      </td>
+                                      <td className="px-5 py-4 max-w-[180px]">
+                                        {item.resolution_note ? (
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.stopPropagation()
+                                              openResolutionPanel(item)
+                                            }}
+                                            className="truncate text-left text-[11px] text-emerald-200 underline decoration-emerald-400/40 underline-offset-2 hover:text-emerald-100"
+                                            title={item.resolution_note}
+                                          >
+                                            {item.resolution_note}
+                                          </button>
+                                        ) : (
+                                          <p className="truncate text-[11px] text-white/70" title={item.resolution_note ?? ''}>
+                                            --
+                                          </p>
+                                        )}
                                       </td>
                                       <td className="px-5 py-4 text-xs">
                                         {item.discrepancies.length > 0 ? (
@@ -473,7 +756,7 @@ export function ReconciliationPage() {
                                         )}
                                       </td>
                                     </motion.tr>
-                                  ))}
+                                  )})}
                                 </tbody>
                               </table>
                             </div>
@@ -488,6 +771,116 @@ export function ReconciliationPage() {
           </div>
         </PageShell>
       </motion.div>
+
+      {selectedItem && (
+        <div className="fixed inset-0 z-40">
+          <button
+            type="button"
+            className="absolute inset-0 bg-[#050814]/80 backdrop-blur-sm"
+            onClick={closeResolutionPanel}
+            aria-label="Close resolution panel"
+          />
+          <motion.aside
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.22 }}
+            className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-[#0a1020] p-6 shadow-2xl sm:p-8"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Resolve reconciliation discrepancy"
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-amber-300">Needs Review</p>
+                <h3 className="mt-1 text-xl font-semibold tracking-tight text-white">{selectedItem.invoice_number}</h3>
+                <p className="mt-1 text-[12px] text-(--muted)">{selectedItem.vendor}</p>
+                <p className="mt-1 text-[10px] font-mono text-(--muted)">Resolution ID: {getItemId(selectedItem) ?? 'N/A'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeResolutionPanel}
+                disabled={resolveMutation.isPending}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">AI Note</p>
+              <p className="mt-2 text-sm leading-relaxed text-amber-100">{getDiscrepancyNote(selectedItem)}</p>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">Ledger Data</p>
+                <dl className="mt-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Invoice</dt><dd className="text-white">{selectedItem.invoice_number || '-'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Vendor</dt><dd className="text-white text-right">{selectedItem.vendor || '-'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Date</dt><dd className="text-white">{formatDate(selectedItem.listing_date ?? null)}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Amount</dt><dd className="font-mono text-white">{formatCurrency(selectedItem.listing_amount, selectedItem.currency ?? 'INR')}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Tax</dt><dd className="font-mono text-white">{formatCurrency(selectedItem.listing_tax ?? selectedItem.matched_invoice_tax ?? 0, selectedItem.currency ?? 'INR')}</dd></div>
+                </dl>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">System Invoice</p>
+                <dl className="mt-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Invoice</dt><dd className="text-white">{selectedItem.matched_invoice_number ?? '-'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Vendor</dt><dd className="text-white text-right">{selectedItem.matched_vendor_name ?? '-'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Date</dt><dd className="text-white">{formatDate(selectedItem.matched_invoice_date ?? null)}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Amount</dt><dd className="font-mono text-white">{selectedItem.matched_invoice_amount != null ? formatCurrency(selectedItem.matched_invoice_amount, selectedItem.matched_invoice_currency ?? selectedItem.currency ?? 'INR') : '-'}</dd></div>
+                  <div className="flex justify-between gap-3"><dt className="text-(--muted)">Tax</dt><dd className="font-mono text-white">{selectedItem.matched_invoice_tax != null ? formatCurrency(selectedItem.matched_invoice_tax, selectedItem.matched_invoice_currency ?? selectedItem.currency ?? 'INR') : '-'}</dd></div>
+                </dl>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <label htmlFor="resolution-note" className="block text-[10px] font-bold uppercase tracking-widest text-white/70">
+                Resolution Note
+              </label>
+              <textarea
+                id="resolution-note"
+                value={resolutionNote}
+                onChange={(event) => setResolutionNote(event.target.value)}
+                placeholder="Why are you approving or rejecting this discrepancy?"
+                className="mt-2 min-h-[110px] w-full rounded-xl border border-white/10 bg-[#0a1226] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-indigo-400/70"
+              />
+            </div>
+
+            {selectedItem && getResolvedAction(selectedItem) && (
+              <button
+                type="button"
+                onClick={submitResolutionNoteUpdate}
+                disabled={resolveMutation.isPending || !getItemId(selectedItem)}
+                className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl border border-indigo-400/40 bg-indigo-500/15 px-4 text-sm font-bold text-indigo-100 transition-colors hover:bg-indigo-500/25 disabled:opacity-50"
+              >
+                {resolveMutation.isPending ? 'Saving note...' : 'Save Note Only'}
+              </button>
+            )}
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => submitResolution('MANUALLY_APPROVED')}
+                disabled={resolveMutation.isPending || !getItemId(selectedItem)}
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {resolveMutation.isPending ? 'Saving...' : 'Accept Discrepancy'}
+              </button>
+              <button
+                type="button"
+                onClick={() => submitResolution('REJECTED')}
+                disabled={resolveMutation.isPending || !getItemId(selectedItem)}
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
+              >
+                {resolveMutation.isPending ? 'Saving...' : 'Reject Invoice'}
+              </button>
+            </div>
+          </motion.aside>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,6 +11,8 @@ from models.reconciliation import ReconciliationSession, ReconciliationItem
 from app.services.reconLLM_service import GeminiService
 from app.config import settings
 from utils.log import logger
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.currency import get_xchange_rate
 
 
 TOLERANCE = Decimal(str(settings.AMOUNT_TOLERANCE))
@@ -39,25 +41,28 @@ def _vendor_similarity(name1: str, name2: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
 
-def _compare_invoice(
+async def _compare_invoice(
     record: dict,
     invoice: Invoice,
+    db: AsyncSession
 ) -> list[str]:
     
     discrepancies = []  #? If it stays empty, it is exactly same
 
-    listing_amt = Decimal(str(record["amount"]))
-    system_amt = Decimal(str(invoice.grand_total))
-    amt_diff = abs(system_amt - listing_amt)
+    
 
-    if amt_diff > TOLERANCE:
-        charged = "overcharged" if system_amt > listing_amt else "undercharged"
+    listing_po = str(record.get("po_number", "")).strip().upper()
+
+    if listing_po == "None":
+        listing_po = ''
+
+    system_po = str(getattr(invoice, 'po_number', '')).strip().upper()
+
+    if listing_po and system_po and listing_po != system_po:
         discrepancies.append(
-            f"Amount mismatch: listing {listing_amt}, "
-            f"invoice {system_amt} "
-            f"({amt_diff} {charged})"
+            f"PO Mismatch: Ledger expects '{listing_po}', "
+            f"but Invoice shows '{system_po}'"
         )
-
 
     listing_tax = Decimal(str(record.get("tax_amount", 0)))
     system_tax = Decimal(str(invoice.tax_amount or 0))
@@ -89,6 +94,28 @@ def _compare_invoice(
                 f"Date mismatch: listing {listing_date}, "
                 f"invoice {system_date} ({day_diff} days apart)"
             )
+
+    #todo Get the currency
+
+    txn_date = invoice.date
+    to_curr = invoice.currency
+    from_curr = record.get("currency")
+
+    exc_rate = await get_xchange_rate(from_curr, to_curr, txn_date)
+
+    listing_amt = Decimal(str(record["amount"])) * exc_rate
+    system_amt = Decimal(str(invoice.grand_total))
+    amt_diff = abs(system_amt - listing_amt)
+
+    if amt_diff > TOLERANCE:
+        charged = "overcharged" if system_amt > listing_amt else "undercharged"
+        discrepancies.append(
+            f"Amount mismatch: listing {listing_amt}, "
+            f"invoice {system_amt} "
+            f"({amt_diff} {charged})"
+        )
+
+
 
     return discrepancies
 
@@ -213,6 +240,12 @@ async def run_reconciliation(
                     listing_date=_safe_parse_date(record["date"]),
                     listing_amount=Decimal(str(record["amount"])),
                     listing_tax_amount=Decimal(str(record.get("tax_amount", 0))),
+
+                    listing_currency=record.get("currency"),
+                    listing_po_number=record.get("po_number"),
+                    listing_tax_id=record.get("tax_id"),
+                    listing_due_date=_safe_parse_date(record.get("due_date")),
+
                     matched_invoice_id=None,
                     status="MISSING",
                     discrepancies="Invoice not found in system",
@@ -227,9 +260,59 @@ async def run_reconciliation(
                 continue
 
             #! Invoice found
+
+            past_match_query = await db.execute(
+                    select(ReconciliationItem)
+                    .join(ReconciliationSession, ReconciliationItem.session_id == ReconciliationSession.id)
+                    .where(
+                        ReconciliationItem.matched_invoice_id == invoice.id,
+                        ReconciliationItem.session_id != session_id,
+                        ReconciliationItem.status == "MATCHED",
+                        ReconciliationSession.user_id == user_id
+                    )
+                )
+            past_match = past_match_query.scalars().first()
+
+            if past_match:
+                # Force a mismatch to alert the auditor
+                status = "DUPLICATE_BILLING"
+                discrepancies = [
+                    f"CRITICAL: This invoice was already matched and cleared "
+                    f"in a previous session (Session ID: {past_match.session_id}). "
+                    f"Possible duplicate payment risk."
+                ]
+                
+                item = ReconciliationItem(
+                    id=uuid.uuid4(),
+                    session_id=session_id,
+                    listing_invoice_number=record["invoice_number"],
+                    listing_vendor_name=record["vendor_name"],
+                    listing_amount=Decimal(str(record["amount"])),
+
+                    listing_currency=record.get("currency"),
+                    listing_po_number=record.get("po_number"),
+                    listing_tax_id=record.get("tax_id"),
+                    listing_due_date=_safe_parse_date(record.get("due_date")),
+
+                    matched_invoice_id=invoice.id,
+                    status=status,
+                    discrepancies=json.dumps(discrepancies),
+                )
+                db.add(item)
+                results["mismatched"] += 1
+                results["items"].append({
+                    "invoice_number": record["invoice_number"],
+                    "status": status,
+                    "matched_to": invoice.invoice_number,
+                    "discrepancies": discrepancies,
+                })
+                continue
+
             matched_invoice_ids.add(invoice.id)
-            discrepancies = _compare_invoice(record, invoice)
+            discrepancies = await _compare_invoice(record, invoice, db)
             status = _determine_status(discrepancies)
+
+
 
             item = ReconciliationItem(
                 id=uuid.uuid4(),
@@ -239,6 +322,12 @@ async def run_reconciliation(
                 listing_date=_safe_parse_date(record["date"]),
                 listing_amount=Decimal(str(record["amount"])),
                 listing_tax_amount=Decimal(str(record.get("tax_amount", 0))),
+
+                listing_currency=record.get("currency"),
+                listing_po_number=record.get("po_number"),
+                listing_tax_id=record.get("tax_id"),
+                listing_due_date=_safe_parse_date(record.get("due_date")),
+
                 matched_invoice_id=invoice.id,
                 status=status,
                 discrepancies=json.dumps(discrepancies) if discrepancies else None,
@@ -274,7 +363,6 @@ async def run_reconciliation(
             ai_summary = await _generate_summary(db, session_id, listing_records, results)
             results["ai_summary"] = ai_summary
 
-        await db.commit()
         return results
     
     except Exception as err:
@@ -355,7 +443,7 @@ async def _run_ai_matching(
             continue
 
     
-        discrepancies = _compare_invoice(record, invoice)
+        discrepancies = await _compare_invoice(record, invoice, db)
         ai_note = (
             f"AI-matched with {confidence:.0%} confidence. "
             f"Reason: {match.get('reasoning', 'N/A')}. "
@@ -375,7 +463,7 @@ async def _run_ai_matching(
 
         # Update counts
         results["missing"] -= 1
-        if status == "MATCHED":
+        if status == "MATCHED" or status == "AI_MATCH":
             results["matched"] += 1
         else:
             results["mismatched"] += 1

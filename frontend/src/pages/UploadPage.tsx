@@ -34,6 +34,87 @@ function stageState(index: number, activeIndex: number) {
   return 'pending'
 }
 
+type UploadErrorInfo = {
+  summary: string
+  details: string[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function parseUploadError(error: unknown): UploadErrorInfo {
+  if (!(error instanceof AxiosError)) {
+    return {
+      summary: 'Something went wrong while processing the invoice.',
+      details: [],
+    }
+  }
+
+  const statusCode = error.response?.status
+  const rawDetail = error.response?.data?.detail
+
+  if (statusCode === 401) return { summary: 'Your session expired. Please sign in again.', details: [] }
+  if (statusCode === 413) return { summary: 'File exceeds upload limit. Please choose a smaller PDF.', details: [] }
+  if (statusCode === 429) return { summary: 'Upload rate limit reached. Please wait and try again.', details: [] }
+  if (typeof statusCode === 'number' && statusCode >= 500) {
+    return {
+      summary: 'Server error while processing invoice. Please retry in a moment.',
+      details: [],
+    }
+  }
+
+  if (typeof rawDetail === 'string') {
+    return { summary: rawDetail, details: [] }
+  }
+
+  if (Array.isArray(rawDetail)) {
+    const details = rawDetail
+      .map((item) => {
+        if (!isRecord(item)) return null
+        const location = Array.isArray(item.loc) ? item.loc.join('.') : null
+        const message = typeof item.msg === 'string' ? item.msg : null
+        if (location && message) return `${location}: ${message}`
+        if (message) return message
+        return null
+      })
+      .filter((item): item is string => Boolean(item))
+
+    if (details.length > 0) {
+      return {
+        summary: 'Invoice is invalid or incomplete.',
+        details,
+      }
+    }
+  }
+
+  if (isRecord(rawDetail)) {
+    const summary = typeof rawDetail.message === 'string'
+      ? rawDetail.message
+      : 'Invoice is invalid or incomplete.'
+    const details = Array.isArray(rawDetail.errors)
+      ? rawDetail.errors.filter((item): item is string => typeof item === 'string')
+      : []
+
+    return {
+      summary,
+      details,
+    }
+  }
+
+  if (statusCode === 400) {
+    return {
+      summary: 'Invoice file is invalid or could not be processed.',
+      details: [],
+    }
+  }
+
+  return {
+    summary: 'Something went wrong while processing the invoice.',
+    details: [],
+  }
+}
+
 export function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [currentStage, setCurrentStage] = useState(0)
@@ -95,27 +176,9 @@ export function UploadPage() {
     maxSize: MAX_UPLOAD_BYTES,
   })
 
-  const processingError = useMemo(() => {
+  const processingIssue = useMemo(() => {
     if (!error) return null
-    if (error instanceof AxiosError) {
-      const statusCode = error.response?.status
-      const detail = error.response?.data?.detail
-      if (statusCode === 400) {
-        if (typeof detail === 'string') return detail
-        return 'Invoice file is invalid or could not be processed.'
-      }
-
-      if (statusCode === 401) return 'Your session expired. Please sign in again.'
-      if (statusCode === 413) return 'File exceeds upload limit. Please choose a smaller PDF.'
-      if (statusCode === 429) return 'Upload rate limit reached. Please wait and try again.'
-      if (typeof statusCode === 'number' && statusCode >= 500) {
-        return 'Server error while processing invoice. Please retry in a moment.'
-      }
-
-      if (typeof detail === 'string') return detail
-    }
-
-    return 'Something went wrong while processing the invoice.'
+    return parseUploadError(error)
   }, [error])
 
   async function handleProcessInvoice() {
@@ -131,8 +194,8 @@ export function UploadPage() {
       const result = await uploadInvoiceMutation(selectedFile)
       toast.success(result.message)
       setCurrentStage(PROCESS_STAGES.length - 1)
-    } catch {
-      toast.error('Invoice processing failed')
+    } catch (err) {
+      toast.error(parseUploadError(err).summary)
     }
   }
 
@@ -292,13 +355,23 @@ export function UploadPage() {
                 </div>
               </div>
 
-              {processingError && (
+              {processingIssue && (
                 <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200 backdrop-blur-md">
                   <div className="flex items-center gap-2 mb-1">
                     <AlertTriangle className="h-4 w-4 text-red-400" />
                     <span className="font-semibold text-red-300">Processing Error</span>
                   </div>
-                  <p className="text-red-200/80 text-xs">{processingError}</p>
+                  <p className="text-red-200/80 text-xs">{processingIssue.summary}</p>
+                  {processingIssue.details.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs text-red-100/90">
+                      {processingIssue.details.map((detail) => (
+                        <li key={detail} className="flex items-start gap-2">
+                          <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-red-300" />
+                          <span>{detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>

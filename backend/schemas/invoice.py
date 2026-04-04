@@ -49,6 +49,8 @@ class InvoiceResponse(InvoiceBase):
     processed_at: datetime | None = None
     created_at: datetime
     line_items: List[LineItemResponse]
+    ai_processed: bool
+    ai_message: str | None = None
     
     model_config = ConfigDict(
         from_attributes=True
@@ -63,6 +65,8 @@ class InvoiceListItem(BaseModel):
     currency: str
     status: InvoiceStatus
     processed_at: datetime | None = None
+    ai_processed: bool
+    ai_message: str | None = None
     
     model_config = ConfigDict(
         from_attributes=True

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { CalendarRange, ChevronLeft, ChevronRight, SlidersHorizontal, Search, FileText, LoaderCircle } from 'lucide-react'
+import { CalendarRange, ChevronLeft, ChevronRight, SlidersHorizontal, Search, FileText, LoaderCircle, Sparkles, RotateCcw } from 'lucide-react'
+import { AxiosError } from 'axios'
 import { Link, useSearchParams } from 'react-router-dom'
-import { listInvoices } from '../api/invoices'
+import { listInvoices, retryAiProcess } from '../api/invoices'
 import { formatCurrency, formatDate, toStatusLabel } from '../lib/formatters'
 import { PageShell } from './PageShell'
+import { toast } from 'sonner'
 
 const listContainer = {
   initial: { opacity: 0, y: 16 },
@@ -26,6 +28,7 @@ function parsePositiveInt(value: string | null, fallback: number) {
 }
 
 export function InvoicesPage() {
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const search = searchParams.get('q') ?? ''
@@ -68,6 +71,32 @@ export function InvoicesPage() {
       }),
   })
 
+  const retryMutation = useMutation({
+    mutationFn: retryAiProcess,
+    onSuccess: async (response) => {
+      if (response.ai_processed) {
+        toast.success(response.message ?? 'AI processing completed successfully.')
+      } else {
+        toast.error(response.ai_message ?? response.message ?? 'AI processing failed. Please retry.')
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['invoices', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] }),
+      ])
+    },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        const detail = error.response?.data?.detail
+        if (typeof detail === 'string') {
+          toast.error(detail)
+          return
+        }
+      }
+      toast.error('Could not reprocess invoice with AI. Please try again.')
+    },
+  })
+
   const totalPages = useMemo(() => {
     const fromServer = data?.total_pages ?? 1
     return fromServer > 0 ? fromServer : 1
@@ -102,6 +131,15 @@ export function InvoicesPage() {
   }
 
   const hasRows = (data?.invoices.length ?? 0) > 0
+
+  function aiStatusClasses(aiProcessed: boolean) {
+    if (aiProcessed) return 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+    return 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+  }
+
+  function aiStatusLabel(aiProcessed: boolean) {
+    return aiProcessed ? 'AI Ready' : 'Not AI Processed'
+  }
 
   const selectClasses = "w-full appearance-none rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white/90 outline-none ring-1 ring-transparent focus:ring-(--brand)/50 transition-all cursor-pointer hover:bg-white/10 backdrop-blur-md"
   
@@ -265,10 +303,11 @@ export function InvoicesPage() {
                         <tr>
                           <th className="px-5 py-4 font-medium">Invoice Reference</th>
                           <th className="px-5 py-4 font-medium">Vendor Target</th>
-                          <th className="px-5 py-4 font-medium">Document Date</th>
-                          <th className="px-5 py-4 font-medium">Recorded Value</th>
-                          <th className="px-5 py-4 font-medium">System State</th>
-                          <th className="px-5 py-4 font-medium">Intake Timestamp</th>
+                          <th className="px-5 py-4 font-medium text-center">Document Date</th>
+                          <th className="px-5 py-4 font-medium text-center">Recorded Value</th>
+                          <th className="px-5 py-4 font-medium text-center">System State</th>
+                          <th className="px-5 py-4 font-medium text-center">AI Coverage</th>
+                          <th className="px-5 py-4 font-medium text-center">Intake Timestamp</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -291,18 +330,37 @@ export function InvoicesPage() {
                               <td className="px-5 py-4 text-white/90 group-hover:text-white transition-colors">
                                 {invoice.vendor_name}
                               </td>
-                              <td className="px-5 py-4 text-(--muted) text-[13px]">
+                              <td className="px-5 py-4 text-center text-(--muted) text-[13px]">
                                 {formatDate(invoice.date)}
                               </td>
-                              <td className="px-5 py-4 font-mono text-[13px] text-white">
+                              <td className="px-5 py-4 text-center font-mono text-[13px] text-white">
                                 {formatCurrency(invoice.grand_total, invoice.currency)}
                               </td>
-                              <td className="px-5 py-4">
+                              <td className="px-5 py-4 text-center">
                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase ${normalizeStatus(statusLabel)}`}>
                                   {statusLabel}
                                 </span>
                               </td>
-                              <td className="px-5 py-4 text-(--muted) text-[13px]">
+                              <td className="px-5 py-4 text-center">
+                                <div className="flex flex-col items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${aiStatusClasses(invoice.ai_processed)}`}>
+                                    <Sparkles className="h-3 w-3" />
+                                    {aiStatusLabel(invoice.ai_processed)}
+                                  </span>
+                                  {!invoice.ai_processed && (
+                                    <button
+                                      type="button"
+                                      onClick={() => retryMutation.mutate(invoice.id)}
+                                      disabled={retryMutation.isPending}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-[12px] font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+                                    >
+                                      <RotateCcw className={`h-3.5 w-3.5 ${retryMutation.isPending ? 'animate-spin' : ''}`} />
+                                      Retry AI
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-5 py-4 text-center text-(--muted) text-[13px]">
                                 {formatDate(invoice.processed_at)}
                               </td>
                             </motion.tr>
@@ -337,10 +395,27 @@ export function InvoicesPage() {
                             {statusLabel}
                           </span>
                         </div>
+                        <div className="mb-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${aiStatusClasses(invoice.ai_processed)}`}>
+                            <Sparkles className="h-3 w-3" />
+                            {aiStatusLabel(invoice.ai_processed)}
+                          </span>
+                        </div>
                         <div className="flex items-center justify-between text-[13px] border-t border-white/5 pt-3">
                           <span className="text-(--muted)">{formatDate(invoice.date)}</span>
                           <span className="font-mono text-white text-sm">{formatCurrency(invoice.grand_total, invoice.currency)}</span>
                         </div>
+                        {!invoice.ai_processed && (
+                          <button
+                            type="button"
+                            onClick={() => retryMutation.mutate(invoice.id)}
+                            disabled={retryMutation.isPending}
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-[12px] font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+                          >
+                            <RotateCcw className={`h-3.5 w-3.5 ${retryMutation.isPending ? 'animate-spin' : ''}`} />
+                            Retry AI
+                          </button>
+                        )}
                       </motion.div>
                     )
                   })}

@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 import uuid
 import json
 from app.database import get_db
-from models.reconciliation import ReconciliationSession, ReconciliationItem, ReconciliationStatus
+from models.reconciliation import ReconciliationSession, ReconciliationItem, ReconciliationStatus, ResolutionStatus, Result
 from app.services.reconciliation import parse_listing, run_reconciliation
 from starlette import status
 from models.users import User
@@ -13,6 +13,20 @@ from middleware.auth import get_current_user
 from jwt.exceptions import InvalidTokenError
 from utils.log import logger
 from utils.lim import limiter
+from datetime import datetime, timezone
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
+
+class ResolutionRequest(BaseModel):
+
+    action: ResolutionStatus
+    note: str | None = None
+
+    model_config = ConfigDict(
+        use_enum_values=True
+    )
+
+
 
 router = APIRouter(prefix="/api/reconciliation", tags=["Reconciliation"])
 
@@ -115,9 +129,12 @@ async def upload_listing(
         }
     except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is not authenticated or token error.")
-    except ValueError:
+    except ValueError as ve:
         await db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.error(f" The error is value error in uplaoding listing. The error is {ve}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Check the data.")
+    except HTTPException:
+        raise
     except Exception as err:
         await db.rollback()
         logger.error(f"Error at routes.reconciliation. Error is {str(err)}")
@@ -188,15 +205,15 @@ async def get_reconciliation_report(
         )
         items = result.scalars().all()
 
-        matched = sum(1 for i in items if i.status == "matched")
+        matched = sum(1 for i in items if i.status == Result.MATCHED.value)
         mismatched = sum(
             1 for i in items
             if i.status in (
-                "amount_mismatch", "vendor_mismatch",
-                "date_mismatch", "tax_mismatch", "multiple_mismatch"
+                Result.AMOUNT_MISMATCH.value, Result.VENDOR_MISMATCH.value,
+                Result.DATE_MISMATCH.value, Result.TAX_MISMATCH.value
             )
         )
-        missing = sum(1 for i in items if i.status == "missing")
+        missing = sum(1 for i in items if i.status == Result.MISSING.value)
         total = len(items)
 
         return {
@@ -213,6 +230,7 @@ async def get_reconciliation_report(
             },
             "items": [
                 {
+                    "id": str(item.id),
                     "invoice_number": item.listing_invoice_number,
                     "vendor": item.listing_vendor_name,
                     "listing_date": str(item.listing_date),
@@ -220,18 +238,30 @@ async def get_reconciliation_report(
                     "listing_tax": float(item.listing_tax_amount),
                     "currency": item.matched_invoice.currency if item.matched_invoice else "INR",
                     "status": item.status,
+                    "matched_invoice_id": str(item.matched_invoice.id) if item.matched_invoice else None,
+                    "matched_invoice_number": item.matched_invoice.invoice_number if item.matched_invoice else None,
+                    "matched_vendor_name": item.matched_invoice.vendor_name if item.matched_invoice else None,
+                    "matched_invoice_date": str(item.matched_invoice.date) if item.matched_invoice else None,
+                    "matched_invoice_amount": float(item.matched_invoice.grand_total) if item.matched_invoice else None,
+                    "matched_invoice_tax": float(item.matched_invoice.tax_amount) if item.matched_invoice else None,
+                    "matched_invoice_currency": item.matched_invoice.currency if item.matched_invoice else None,
                     "discrepancies": (
                         json.loads(item.discrepancies)
                         if item.discrepancies
                         and item.discrepancies.startswith("[")
                         else ([item.discrepancies] if item.discrepancies else [])
                     ),
+                    "resolved_status": item.resolved_status,
+                    "resolution_note": item.resolution_note,
+                    "resolution_date": item.resolution_date.isoformat() if item.resolution_date else None
                 }
                 for item in items
             ],
         }
     except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is not authenticated or token error.")
+    except HTTPException:
+        raise
     except Exception as err:
         logger.error(f"Error at routes.get_reconciliation report. Error is {str(err)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
@@ -244,53 +274,118 @@ async def get_items_filtered(
     request: Request,
     session_id: str,
     current_user: User = Depends(get_current_user),
-    status: str = None,
+    stat: str = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get reconciliation items, optionally filtered by status.
     
     Status values: matched, missing, amount_mismatch, 
-    vendor_mismatch, date_mismatch, tax_mismatch, multiple_mismatch
+    vendor_mismatch, date_mismatch, tax_mismatch
     """
 
     try:
         query = select(ReconciliationItem).where(
             ReconciliationItem.session_id == session_id, 
             ReconciliationSession.uploaded_by == current_user.id
-        )
+        ).join(ReconciliationSession, ReconciliationSession.id == ReconciliationItem.session_id)
 
         query = query.options(selectinload(ReconciliationItem.matched_invoice))
 
-        if status:
-            query = query.where(ReconciliationItem.status == status)
+        if stat:
+            query = query.where(ReconciliationItem.status == stat)
 
         result = await db.execute(query)
         items = result.scalars().all()
 
         return {
             "session_id": session_id,
-            "filter": status or "all",
+            "filter": stat or "all",
             "count": len(items),
             "items": [
                 {
+                    "id": str(item.id),
                     "invoice_number": item.listing_invoice_number,
                     "vendor": item.listing_vendor_name,
                     "listing_amount": float(item.listing_amount),
                     "currency": item.matched_invoice.currency if item.matched_invoice else "INR",
                     "status": item.status,
+
+                    "listing_vendor_name": item.listing_vendor_name,
+                    "listing_date": item.listing_date,
+                    "listing_amount": item.listing_amount,
+                    "listing_tax_amount":item.listing_tax_amount,
+
+                    "matched_invoice_id": str(item.matched_invoice.id) if item.matched_invoice else None,
+                    "matched_invoice_number": item.matched_invoice.invoice_number if item.matched_invoice else None,
+                    "matched_vendor_name": item.matched_invoice.vendor_name if item.matched_invoice else None,
+                    "matched_invoice_date": str(item.matched_invoice.date) if item.matched_invoice else None,
+                    "matched_invoice_amount": float(item.matched_invoice.grand_total) if item.matched_invoice else None,
+                    "matched_invoice_tax": float(item.matched_invoice.tax_amount) if item.matched_invoice else None,
+                    "matched_invoice_currency": item.matched_invoice.currency if item.matched_invoice else None,
+
                     "discrepancies": (
                         json.loads(item.discrepancies)
                         if item.discrepancies
                         and item.discrepancies.startswith("[")
                         else ([item.discrepancies] if item.discrepancies else [])
                     ),
+
+                    "resolved_status": item.resolved_status,
+                    "resolution_note": item.resolution_note,
+                    "resolution_date": item.resolution_date.isoformat() if item.resolution_date else None
                 }
                 for item in items
             ],
         }
     except InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is not authenticated or token error.")
+    except HTTPException:
+        raise
     except Exception as err:
         logger.error(f"Error at routes.get_item_filtered. Error is \n {str(err)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+
+@router.post("/items/{item_id}/resolve")
+async def update_line_item(
+    item_id: uuid.UUID,
+    payload: ResolutionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+
+    try:
+        item = (await db.execute(select(ReconciliationItem).join(ReconciliationSession, ReconciliationItem.session_id == ReconciliationSession.id)
+        .where(ReconciliationItem.id == item_id, ReconciliationSession.uploaded_by == current_user.id)
+        )).scalar_one_or_none()
+    except Exception as err:
+        logger.error(f"Database query error in update_line_item: {err}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No item with such id.")
+
+    try:
+        if payload.action == "MANUALLY_APPROVED":
+            item.resolved_status = ResolutionStatus.MANUALLY_APPROVED
+        else:
+            item.resolved_status = ResolutionStatus.REJECTED
+
+
+        item.resolution_note = payload.note
+        item.resolution_date = datetime.now(timezone.utc)
+
+        await db.commit()
+
+        return {
+            "message": "Item resolved successfully"
+        }
+    
+    except Exception as err:
+        await db.rollback()
+        logger.error(f"Error saving resolution in update_line_item: {err}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to save resolution")
+
+    
+

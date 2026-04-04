@@ -34,11 +34,11 @@ export function AuthSplitLayout({
   const shouldReduceMotion = useReducedMotion()
 
   return (
-    <section className="relative isolate overflow-hidden px-4 py-10 sm:px-6 sm:py-14 lg:py-16 min-h-screen flex items-center">
+    <section className="relative isolate overflow-hidden px-4 py-3 sm:px-6 sm:py-8 lg:py-10 min-h-dvh flex items-start lg:items-center">
       <div className="auth-noise pointer-events-none absolute inset-0 -z-10 opacity-60" />
 
       {/* Tonal Architecture without 1px borders for dark mode */}
-      <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:gap-14">
+      <div className="mx-auto grid w-full max-w-6xl items-start gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:gap-14">
         
         {/* Left Side: Brand & Context */}
         <motion.aside
@@ -88,7 +88,7 @@ export function AuthSplitLayout({
           initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96, y: 20 }}
           animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: shouldReduceMotion ? 0 : 0.1 }}
-          className="relative mt-8 lg:mt-0 flex w-full flex-col justify-center rounded-[2rem] bg-[#111827]/40 p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.4)] backdrop-blur-2xl sm:p-12 ring-1 ring-white/5"
+          className="relative mt-8 self-start lg:mt-0 flex w-full flex-col justify-start rounded-[2rem] bg-[#111827]/40 p-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.4)] backdrop-blur-2xl sm:p-12 ring-1 ring-white/5"
         >
           {/* Subtle top glare */}
           <div className="pointer-events-none absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/[0.04] to-transparent" />

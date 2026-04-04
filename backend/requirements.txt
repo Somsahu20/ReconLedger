@@ -19,6 +19,7 @@ bcrypt==5.0.0
 passlib==1.7.4
 python-jose==3.5.0
 pwdlib[argon2]==0.3.0
+pwdlib==0.3.0
 
 # == AI & LLM ==
 langchain-google-genai
@@ -43,3 +44,5 @@ email-validator>=2.3.0
 pandas==3.0.1
 openpyxl==3.1.5
 slowapi==0.1.9
+httpx==0.28.1
+requests==2.32.5

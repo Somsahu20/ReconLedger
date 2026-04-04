@@ -9,6 +9,8 @@ import { queryClient } from './lib/queryClient.ts'
 import './index.css'
 import App from './App.tsx'
 
+document.documentElement.dataset.theme = 'dark'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

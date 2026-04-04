@@ -15,13 +15,6 @@ vi.mock('../hooks/useAuth', () => ({
   }),
 }))
 
-vi.mock('../hooks/useTheme', () => ({
-  useTheme: () => ({
-    theme: 'light',
-    toggleTheme: vi.fn(),
-  }),
-}))
-
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),

@@ -1,8 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { PointerEffects } from './components/effects/PointerEffects'
-import { useAuth } from './hooks/useAuth'
-import { useTheme } from './hooks/useTheme'
 import { AppLayout } from './layout/AppLayout'
 import { ProtectedRoute } from './layout/ProtectedRoute'
 import { PublicOnlyRoute } from './layout/PublicOnlyRoute'
@@ -27,9 +25,6 @@ function RouteLoadingFallback() {
 import { SceneHost } from './components/three/SceneHost'
 
 function App() {
-  const { user } = useAuth()
-  useTheme(user?.id)
-
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <SceneHost />

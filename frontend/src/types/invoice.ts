@@ -26,6 +26,7 @@ export type InvoiceResponse = {
   processed_at: string | null
   created_at: string
   line_items: LineItem[]
+  ai_processed: boolean
 }
 
 export type ValidationCheck = {
@@ -58,6 +59,14 @@ export type InvoiceListItem = {
   currency: string
   status: InvoiceStatus
   processed_at: string | null
+  ai_processed: boolean
+}
+
+export type RetryAiProcessResponse = {
+  invoice_id: string
+  ai_processed: boolean
+  ai_message: string | null
+  message?: string
 }
 
 export type InvoiceListResponse = {

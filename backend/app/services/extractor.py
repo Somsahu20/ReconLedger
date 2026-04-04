@@ -1,12 +1,31 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ValidationError
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage   
 from langchain_core.output_parsers import JsonOutputParser
-from datetime import date
+from datetime import date as DateType
 from decimal import Decimal
 from app.config import settings
 from utils.log import logger
 from typing import List
+
+
+class InvoiceExtractionError(Exception):
+    def __init__(self, message: str, issues: list[str] | None = None):
+        super().__init__(message)
+        self.message = message
+        self.issues = issues or []
+
+
+def _format_validation_issues(err: ValidationError) -> list[str]:
+    issues: list[str] = []
+    for issue in err.errors():
+        location = ".".join(str(part) for part in issue.get("loc", []))
+        message = issue.get("msg", "Invalid value")
+        if location:
+            issues.append(f"{location}: {message}")
+        else:
+            issues.append(str(message))
+    return issues
 
 class ExtractedLineItem(BaseModel):
     item_index: int
@@ -32,8 +51,8 @@ class ExtractedLineItem(BaseModel):
 class ExtractedInvoice(BaseModel):
     invoice_number: str
     vendor_name: str
-    date: date #! yyyy-mm-dd
-    due_date: date | None = None #! YYYY-MM-DD format
+    date: DateType #! yyyy-mm-dd
+    due_date: DateType | None = None #! YYYY-MM-DD format
     currency: str = "INR"
     line_items: list[ExtractedLineItem]
     subtotal: Decimal
@@ -271,7 +290,7 @@ they are how the system detects fraud and billing errors.
 
 MODEL = "gemini-3-flash-preview"
 
-async def extract_invoice_data(image_base64: List[str]) -> ExtractedInvoice | None:
+async def extract_invoice_data(image_base64: List[str]) -> ExtractedInvoice:
     """
     Use Gemini Vision to extract structured invoice data.
     With rate limiting to prevent API exhaustion.
@@ -308,12 +327,24 @@ async def extract_invoice_data(image_base64: List[str]) -> ExtractedInvoice | No
             # logger.info(f"The model is {MODEL}")
             # logger.info(f"Raw Gemini extraction result: {result}")
             
-            return ExtractedInvoice(**result)
+            try:
+                return ExtractedInvoice(**result)
+            except ValidationError as err:
+                issues = _format_validation_issues(err)
+                logger.warning(f"Invoice extraction validation failed: {issues}")
+                raise InvoiceExtractionError(
+                    "Invoice is missing required fields or contains invalid values.",
+                    issues,
+                ) from err
+        except InvoiceExtractionError:
+            raise
         except Exception as err:
             logger.error(f"Error in extracting invoice data: {err}")
-            return None
+            raise InvoiceExtractionError(
+                "Unable to extract invoice data from the PDF. Please upload a clearer invoice."
+            ) from err
     
     # Execute with rate limiting and retry
     result = await _call_gemini()
-    
+
     return result

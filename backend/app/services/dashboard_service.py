@@ -80,8 +80,10 @@ async def get_dashboard_stats(db: AsyncSession, user_id: UUID) -> DashboardRespo
                 invoice_number=inv.invoice_number,
                 vendor_name=inv.vendor_name,
                 grand_total=Decimal(inv.grand_total),
+                currency=inv.currency,
                 status=inv.status.value,
                 processed_at=inv.processed_at,
+                ai_processed=inv.ai_processed
             )
             for inv in recent_invoices
         ]

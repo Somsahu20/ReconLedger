@@ -52,4 +52,40 @@ async def check_health():
 async def check_db(db: AsyncSession = Depends(get_db)):
     return {"message": "Successfully connected"}
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_db
+from pinecone import Pinecone
+from app.config import settings
+from app.services.vector_store import get_embeddings
+from utils.log import logger
+from uuid import UUID
+from sqlalchemy.sql import update
+
+@app.get("/indexes")
+async def migrate(db: AsyncSession = Depends(get_db)):
+
+    pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+
+    try:
+        index = pc.Index(settings.INDEX_NAME)
+        res = index.query(
+            vector=[0.0]*3072, 
+            include_metadata=True,
+            top_k=100
+        )
+        
+        for query in res.matches:
+            id = UUID(query.id)
+            stmt = update(Invoice).where(Invoice.id == id).values({"ai_processed": True})
+            await db.execute(stmt)
+
+        await db.commit()
+
+
+
+
+    except Exception as err:
+        logger.error(f"Error is {err}")
+        await db.rollback()
+
     

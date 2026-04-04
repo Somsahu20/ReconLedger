@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Activity, AlertTriangle, CheckCircle2, Clock3, FileText, Search, UploadCloud, ChevronRight } from 'lucide-react'
+import { Activity, AlertTriangle, CheckCircle2, Clock3, FileText, Search, UploadCloud, ChevronRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getDashboardStats } from '../api/dashboard'
 import { formatCurrency, formatDate, toStatusLabel } from '../lib/formatters'
@@ -105,6 +105,7 @@ export function DashboardPage() {
 
   const stats = data?.stats
   const recentInvoices = data?.recent_invoices ?? []
+  const notAiInvoices = recentInvoices.filter((invoice) => !invoice.ai_processed)
   const hasStats = Boolean(stats)
 
   const isEmpty = !isLoading && !isError && hasStats && (stats?.total_invoices ?? 0) === 0
@@ -184,35 +185,9 @@ export function DashboardPage() {
 
             {!isLoading && !isError && !isEmpty && stats && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {/* Total Invoices */}
-                  <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/10 transition-colors hover:bg-white/[0.05]">
-                    <div className="flex items-center justify-between text-(--muted)">
-                      <span className="text-[11px] font-bold uppercase tracking-widest">Total Invoices</span>
-                      <div className="p-2 bg-white/5 rounded-lg text-(--brand)">
-                        <FileText className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <p className="mt-4 text-3xl font-light tracking-tight text-white md:text-4xl">
-                      <CountUpSafe end={stats.total_invoices} duration={1.1} separator="," />
-                    </p>
-                  </motion.div>
-
-                  {/* Processed Today */}
-                  <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/10 transition-colors hover:bg-white/[0.05]">
-                    <div className="flex items-center justify-between text-(--muted)">
-                      <span className="text-[11px] font-bold uppercase tracking-widest">Processed Today</span>
-                      <div className="p-2 bg-white/5 rounded-lg text-emerald-400">
-                        <Activity className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <p className="mt-4 text-3xl font-light tracking-tight text-white md:text-4xl">
-                      <CountUpSafe end={stats.invoices_today} duration={1.1} separator="," />
-                    </p>
-                  </motion.div>
-
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {/* Needs Review - Accentuated */}
-                  <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl bg-amber-500/10 p-5 ring-1 ring-amber-500/20 transition-colors hover:bg-amber-500/15">
+                  <motion.div variants={itemVariants} className="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl bg-amber-500/10 p-5 ring-1 ring-amber-500/20 transition-colors hover:bg-amber-500/15">
                     <div className="flex items-center justify-between text-amber-300">
                       <span className="text-[11px] font-bold uppercase tracking-widest">Needs Review</span>
                       <div className="p-2 bg-amber-500/20 rounded-lg text-amber-300">
@@ -225,6 +200,47 @@ export function DashboardPage() {
                     <Link to="/review" className="absolute bottom-5 right-5 opacity-0 transition-opacity group-hover:opacity-100">
                       <ChevronRight className="h-5 w-5 text-amber-300" />
                     </Link>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants} className="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl bg-rose-500/10 p-5 ring-1 ring-rose-500/20 transition-colors hover:bg-rose-500/15">
+                    <div className="flex items-center justify-between text-rose-300">
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Not AI Processed</span>
+                      <div className="p-2 bg-rose-500/20 rounded-lg text-rose-300">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-3xl font-semibold tracking-tight text-rose-300 md:text-4xl drop-shadow-[0_0_10px_rgba(244,63,94,0.3)]">
+                      <CountUpSafe end={stats.not_ai_processed_count ?? notAiInvoices.length} duration={1.1} separator="," />
+                    </p>
+                    <Link to="/invoices" className="absolute bottom-5 right-5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <ChevronRight className="h-5 w-5 text-rose-300" />
+                    </Link>
+                  </motion.div>
+
+                  {/* Total Invoices */}
+                  <motion.div variants={itemVariants} className="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/10 transition-colors hover:bg-white/[0.05]">
+                    <div className="flex items-center justify-between text-(--muted)">
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Total Invoices</span>
+                      <div className="p-2 bg-white/5 rounded-lg text-(--brand)">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-3xl font-light tracking-tight text-white md:text-4xl">
+                      <CountUpSafe end={stats.total_invoices} duration={1.1} separator="," />
+                    </p>
+                  </motion.div>
+
+                  {/* Processed Today */}
+                  <motion.div variants={itemVariants} className="group relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.03] p-5 ring-1 ring-white/10 transition-colors hover:bg-white/[0.05]">
+                    <div className="flex items-center justify-between text-(--muted)">
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Processed Today</span>
+                      <div className="p-2 bg-white/5 rounded-lg text-emerald-400">
+                        <Activity className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <p className="mt-4 text-3xl font-light tracking-tight text-white md:text-4xl">
+                      <CountUpSafe end={stats.invoices_today} duration={1.1} separator="," />
+                    </p>
                   </motion.div>
                 </div>
 
@@ -289,6 +305,31 @@ export function DashboardPage() {
                       </motion.div>
                     </div>
                   </motion.div>
+
+                  <motion.div variants={itemVariants} className="rounded-2xl bg-white/[0.02] p-5 ring-1 ring-white/5 shadow-inner backdrop-blur-sm lg:col-span-3">
+                    <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-3">
+                      <h3 className="text-sm font-medium text-white">Not AI Processed Invoices</h3>
+                      <Sparkles className="h-4 w-4 text-rose-300" />
+                    </div>
+                    {notAiInvoices.length === 0 ? (
+                      <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                        All currently displayed invoices are AI processed.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {notAiInvoices.map((invoice) => (
+                          <Link
+                            key={invoice.id}
+                            to={`/invoices/${encodeURIComponent(invoice.invoice_number)}`}
+                            className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm transition-colors hover:bg-rose-500/15"
+                          >
+                            <span className="font-medium text-white">{invoice.invoice_number} · {invoice.vendor_name}</span>
+                            <span className="text-rose-200">{formatCurrency(invoice.grand_total, invoice.currency)}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
                 </div>
               </div>
             )}
@@ -332,7 +373,7 @@ export function DashboardPage() {
                       const normalizedStatus = toStatusLabel(invoice.status)
                       return (
                         <motion.tr
-                          key={invoice.invoice_number}
+                          key={invoice.id ?? invoice.invoice_number}
                           whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.04)' }}
                           className="transition-colors group"
                         >
@@ -342,7 +383,7 @@ export function DashboardPage() {
                             </Link>
                           </td>
                           <td className="px-4 py-4 text-(--muted) group-hover:text-white/90 transition-colors">{invoice.vendor_name}</td>
-                          <td className="px-4 py-4 text-white font-mono text-[13px]">{formatCurrency(invoice.grand_total, 'INR')}</td>
+                          <td className="px-4 py-4 text-white font-mono text-[13px]">{formatCurrency(invoice.grand_total, invoice.currency)}</td>
                           <td className="px-4 py-4">
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${statusClasses(normalizedStatus)}`}>
                               {normalizedStatus}

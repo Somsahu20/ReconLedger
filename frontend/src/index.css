@@ -1,35 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f2f5f0;
-  --surface: #ffffff;
-  --surface-soft: #f5f8f4;
-  --surface-high: #e4ebe0;
-  --ink: #1a2e22;
-  --muted: #5c6e60;
-  --line: #c8d5c6;
-  --brand: #2F4C39;
-  --brand-ink: #1d3325;
-  --contrast: #1a2e22;
-  --glow-a: rgba(47, 76, 57, 0.16);
-  --glow-b: rgba(85, 140, 100, 0.12);
-  color-scheme: light;
-}
-
-:root[data-theme='dark'] {
-  /* Obsidian Recon — Pastel Green */
-  --bg: #0b160f;
-  --surface: #0d1a12;
-  --surface-soft: #162218;
-  --surface-high: #243328;
-  --ink: #d4e4d8;
-  --muted: #8fa896;
-  --line: #2a3d2e;
-  --brand: #7fbf8e;
-  --brand-ink: #4a9960;
+  --bg: #130f0a;
+  --surface: #1a140d;
+  --surface-soft: #231b12;
+  --surface-high: #2f2418;
+  --ink: #e9dfcf;
+  --muted: #b6a58a;
+  --line: #3d3123;
+  --brand: #f59e0b;
+  --brand-ink: #d97706;
   --contrast: #ffffff;
-  --glow-a: rgba(127, 191, 142, 0.10);
-  --glow-b: rgba(47, 76, 57, 0.25);
+  --glow-a: rgba(245, 158, 11, 0.14);
+  --glow-b: rgba(117, 72, 15, 0.25);
+  --line-strong: #5a442c;
   color-scheme: dark;
 }
 
@@ -64,16 +48,16 @@ body::before {
 
 .auth-noise {
   background-image:
-    radial-gradient(circle at 14% 18%, rgba(47, 76, 57, 0.16), transparent 34%),
-    radial-gradient(circle at 86% 78%, rgba(85, 140, 100, 0.14), transparent 38%),
+    radial-gradient(circle at 14% 18%, rgba(117, 72, 15, 0.18), transparent 34%),
+    radial-gradient(circle at 86% 78%, rgba(176, 120, 40, 0.14), transparent 38%),
     linear-gradient(125deg, rgba(255, 255, 255, 0.20), transparent 55%);
 }
 
 :root[data-theme='dark'] .auth-noise {
   background-image:
-    radial-gradient(circle at 12% 15%, rgba(127, 191, 142, 0.06), transparent 45%),
-    radial-gradient(circle at 86% 82%, rgba(47, 76, 57, 0.20), transparent 50%),
-    linear-gradient(130deg, rgba(11, 22, 15, 0.4), transparent 60%);
+    radial-gradient(circle at 12% 15%, rgba(245, 158, 11, 0.08), transparent 45%),
+    radial-gradient(circle at 86% 82%, rgba(117, 72, 15, 0.22), transparent 50%),
+    linear-gradient(130deg, rgba(19, 15, 10, 0.45), transparent 60%);
 }
 
 /* ======================================================================
@@ -109,81 +93,11 @@ body::before {
 :root[data-theme='dark'] .bg-teal-50,
 :root[data-theme='dark'] .bg-teal-50\/40,
 :root[data-theme='dark'] .hover\:bg-teal-50\/40:hover {
-  background-color: rgba(164, 201, 255, 0.1) !important;
+  background-color: rgba(245, 158, 11, 0.12) !important;
 }
 
 :root[data-theme='dark'] .focus\:ring-teal-100:focus {
-  --tw-ring-color: rgba(164, 201, 255, 0.3) !important;
-}
-
-/* ======================================================================
-   LIGHT MODE: Override hardcoded "white" utilities used in Obsidian Recon
-   
-   All page components were styled for dark mode with text-white,
-   bg-white/N, border-white/N, ring-white/N. In light mode these must
-   invert. We use var(--contrast) for glass overlays and var(--ink) for text.
-   ====================================================================== */
-
-/* ---- TEXT ---- */
-/* Content text: white → use ink variable (dark in light mode) */
-:root:not([data-theme='dark']) [class*="text-white"]:not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-indigo"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-sky"]):not([class*="from-"]):not(.skip-light-fix) {
-  color: var(--ink) !important;
-}
-
-/* ---- BACKGROUNDS ---- */
-/* Glass overlays: bg-white/N → use contrast at same opacity */
-:root:not([data-theme='dark']) [class*="bg-white\\/"] {
-  background-color: color-mix(in srgb, var(--contrast) 5%, transparent) !important;
-}
-
-:root:not([data-theme='dark']) [class*="bg-\\[\\#070d1f\\]"],
-:root:not([data-theme='dark']) [class*="bg-\\[\\#0c1324\\]"] {
-  background-color: var(--bg) !important;
-}
-
-/* ---- BORDERS ---- */
-:root:not([data-theme='dark']) [class*="border-white\\/"] {
-  border-color: color-mix(in srgb, var(--contrast) 12%, transparent) !important;
-}
-
-/* ---- RINGS ---- */
-:root:not([data-theme='dark']) [class*="ring-white\\/"] {
-  --tw-ring-color: color-mix(in srgb, var(--contrast) 10%, transparent) !important;
-}
-
-/* ---- DIVIDERS ---- */
-:root:not([data-theme='dark']) [class*="divide-white\\/"] > * + * {
-  border-color: color-mix(in srgb, var(--contrast) 8%, transparent) !important;
-}
-
-/* ---- PLACEHOLDER TEXT ---- */
-:root:not([data-theme='dark']) [class*="placeholder\\:text-white"]::placeholder {
-  color: var(--muted) !important;
-}
-
-/* ---- GRADIENTS ---- */
-/* Radial gradients referencing dark mode bg colors → use theme bg */
-:root:not([data-theme='dark']) [class*="to-\\[\\#070d1f\\]"],
-:root:not([data-theme='dark']) [class*="via-\\[\\#070d1f\\]"],
-:root:not([data-theme='dark']) [class*="from-\\[\\#070d1f\\]"] {
-  --tw-gradient-to: var(--bg) !important;
-  --tw-gradient-via: var(--bg) !important;
-  --tw-gradient-from: var(--bg) !important;
-}
-
-/* ---- PRESERVE WHITE TEXT ON COLORED BUTTONS ---- */
-/* Buttons with gradient or solid color backgrounds keep white text */
-:root:not([data-theme='dark']) [class*="bg-gradient"] [class*="text-white"],
-:root:not([data-theme='dark']) [class*="bg-gradient"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="from-emerald"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="from-amber"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="from-indigo"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="bg-emerald"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="bg-indigo"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="bg-red"][class*="text-white"],
-:root:not([data-theme='dark']) [class*="bg-sky"][class*="text-white"],
-:root:not([data-theme='dark']) .skip-light-fix {
-  color: #ffffff !important;
+  --tw-ring-color: rgba(245, 158, 11, 0.35) !important;
 }
 
 /* ---- SCROLLBAR ---- */

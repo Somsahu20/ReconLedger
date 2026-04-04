@@ -36,7 +36,7 @@ function OrbitRing({ color, size, speed }: { color: string; size: number; speed:
 
   return (
     <mesh ref={ringRef} rotation={[Math.PI / 2.6, 0, 0]}>
-      <torusGeometry args={[size, 0.025, 18, 96]} />
+      <torusGeometry args={[size, 0.025, 12, 48]} />
       <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.15} transparent opacity={0.65} />
     </mesh>
   )

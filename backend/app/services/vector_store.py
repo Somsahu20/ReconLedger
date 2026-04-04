@@ -55,7 +55,7 @@ def get_collection():
         _collection = init_vector_store()
     return _collection
 
-async def index_invoice(invoice: Invoice, user_id: uuid.UUID):
+async def index_invoice(invoice: Invoice, user_id: uuid.UUID) -> tuple[bool, str]:
     
     #todo Index an invoice in ChromaDB for semantic search.
     
@@ -93,10 +93,12 @@ async def index_invoice(invoice: Invoice, user_id: uuid.UUID):
                 "metadata": {**metadata, "document": text_summary}
             }]
         )
+
+        return True, ""
     
     except Exception as err:
         logger.error(f"Error in indexing errors. The exact error is {err}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error in indexing invoices")
+        return False, str(err)
 
 def generate_invoice_summary(invoice: Invoice) -> str:
     line_items_text = []

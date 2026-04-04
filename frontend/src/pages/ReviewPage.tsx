@@ -8,11 +8,12 @@ import {
   CircleCheckBig,
   FileClock,
   LoaderCircle,
-  MessageSquareText,
   X,
   ShieldAlert,
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { Link } from 'react-router-dom'
+import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
 import {
   getFlaggedInvoices,
@@ -21,10 +22,21 @@ import {
   resolveFlaggedInvoice,
 } from '../api/reviews'
 import { formatCurrency, formatDate } from '../lib/formatters'
+import type { InvoiceListItem } from '../types/invoice'
 import type { FlaggedInvoiceItem, ReviewHistoryItem } from '../types/review'
 import { PageShell } from './PageShell'
 
 type ActiveTab = 'pending' | 'reviewed'
+
+type ReviewedDetailModalData = {
+  invoice_number: string
+  vendor_name: string
+  grand_total: number | string
+  currency: string
+  reviewed_at: string | null
+  reviewed_by: string
+  review_note: string | null
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 16 },
@@ -57,6 +69,7 @@ export function ReviewPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<ActiveTab>('pending')
   const [selectedInvoice, setSelectedInvoice] = useState<FlaggedInvoiceItem | null>(null)
+  const [selectedReviewedDetail, setSelectedReviewedDetail] = useState<ReviewedDetailModalData | null>(null)
   const [reviewNote, setReviewNote] = useState('')
 
   const {
@@ -141,6 +154,22 @@ export function ReviewPage() {
       invoiceId: selectedInvoice.id,
       note: normalizedNote ? normalizedNote : null,
     })
+  }
+
+  function openReviewedDetailModal(invoice: InvoiceListItem, historyItem?: ReviewHistoryItem) {
+    setSelectedReviewedDetail({
+      invoice_number: invoice.invoice_number,
+      vendor_name: invoice.vendor_name,
+      grand_total: invoice.grand_total,
+      currency: invoice.currency,
+      reviewed_at: historyItem?.reviewed_at ?? invoice.processed_at,
+      reviewed_by: historyItem ? reviewerName(historyItem) : 'System',
+      review_note: historyItem?.review_note ?? null,
+    })
+  }
+
+  function closeReviewedDetailModal() {
+    setSelectedReviewedDetail(null)
   }
 
   return (
@@ -288,7 +317,25 @@ export function ReviewPage() {
                                 <AlertTriangle className="h-3 w-3" />
                                 Vector Analysis
                               </p>
-                              <p className="line-clamp-3 leading-relaxed opacity-90">{invoice.audit_report}</p>
+                              <div className="max-h-24 overflow-hidden mask-[linear-gradient(to_bottom,black_75%,transparent)]">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    p: ({ children }) => <p className="mb-2 leading-relaxed last:mb-0">{children}</p>,
+                                    strong: ({ children }) => <strong className="font-semibold text-amber-100">{children}</strong>,
+                                    em: ({ children }) => <em className="text-amber-100/90">{children}</em>,
+                                    ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-4 marker:text-amber-300">{children}</ul>,
+                                    ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-4 marker:text-amber-300">{children}</ol>,
+                                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                    h1: ({ children }) => <h1 className="mb-2 text-sm font-bold text-amber-100">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="mb-2 text-sm font-semibold text-amber-100">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-200">{children}</h3>,
+                                    hr: () => <hr className="my-2 border-amber-400/20" />,
+                                  }}
+                                >
+                                  {invoice.audit_report}
+                                </ReactMarkdown>
+                              </div>
                             </div>
                           )}
 
@@ -342,8 +389,7 @@ export function ReviewPage() {
                   )}
 
                   {!isReviewedLoading && !isHistoryLoading && !isReviewedError && !isHistoryError && (
-                    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] xl:grid-cols-[2fr_1fr]">
-                      <div className="space-y-4">
+                    <div className="space-y-4">
                         {(reviewedData?.invoices.length ?? 0) === 0 ? (
                           <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-12 text-center shadow-[0_8px_32px_rgba(0,0,0,0.1)] backdrop-blur-xl flex flex-col items-center justify-center h-full min-h-[300px]">
                             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-(--muted) mb-5">
@@ -372,13 +418,15 @@ export function ReviewPage() {
                                     return (
                                       <motion.tr
                                         key={invoice.id}
+                                        onClick={() => openReviewedDetailModal(invoice, historyItem)}
                                         whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-                                        className="transition-colors group"
+                                        className="cursor-pointer transition-colors group"
                                       >
                                         <td className="px-6 py-4 font-semibold text-white">
-                                          <Link to={`/invoices/${encodeURIComponent(invoice.invoice_number)}`} className="hover:text-(--brand) transition-colors">
-                                            {invoice.invoice_number}
-                                          </Link>
+                                          <span className="inline-flex items-center gap-2">
+                                            <span className="hover:text-(--brand) transition-colors">{invoice.invoice_number}</span>
+                                            <span className="text-[10px] uppercase tracking-wider text-emerald-300/70">view review</span>
+                                          </span>
                                         </td>
                                         <td className="px-6 py-4 text-white/80 group-hover:text-white transition-colors">
                                           {invoice.vendor_name}
@@ -399,6 +447,16 @@ export function ReviewPage() {
                                             <p className="text-[13px] text-white/70 truncate">
                                               {historyItem?.review_note ? historyItem.review_note : 'Systematic resolution via console.'}
                                             </p>
+                                            <button
+                                              type="button"
+                                              onClick={(event) => {
+                                                event.stopPropagation()
+                                                openReviewedDetailModal(invoice, historyItem)
+                                              }}
+                                              className="w-fit rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 transition hover:bg-emerald-500/20"
+                                            >
+                                              Review Details
+                                            </button>
                                           </div>
                                         </td>
                                       </motion.tr>
@@ -409,44 +467,6 @@ export function ReviewPage() {
                             </div>
                           </div>
                         )}
-                      </div>
-
-                      <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl lg:sticky lg:top-24 h-fit min-w-0 overflow-hidden">
-                        <h3 className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-widest text-(--muted) mb-5">
-                          <MessageSquareText className="h-4 w-4" />
-                          Activity Ledger
-                        </h3>
-                        
-                        {(reviewHistory?.length ?? 0) === 0 ? (
-                          <div className="py-8 text-center bg-white/[0.01] rounded-2xl">
-                            <p className="text-sm text-(--muted)">No recent operational entries.</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {reviewHistory?.slice(0, 6).map((item) => (
-                              <motion.div
-                                key={item.id}
-                                initial={{ opacity: 0, x: 10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[12px] backdrop-blur-md"
-                              >
-                                <div className="flex items-center justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <div className="h-5 w-5 rounded-full bg-(--brand)/20 flex items-center justify-center text-[10px] text-(--brand) shrink-0">
-                                      {reviewerName(item).charAt(0).toUpperCase()}
-                                    </div>
-                                    <p className="font-semibold text-white/90 truncate text-[11px]">{reviewerName(item)}</p>
-                                  </div>
-                                  <p className="text-[10px] text-(--muted) font-mono shrink-0">{formatDate(item.reviewed_at)}</p>
-                                </div>
-                                <p className="text-white/60 text-[11px] leading-relaxed pl-6 truncate">
-                                  {item.review_note || <span className="italic">System override applied.</span>}
-                                </p>
-                              </motion.div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
                 </motion.section>
@@ -457,6 +477,70 @@ export function ReviewPage() {
       </motion.div>
 
       <AnimatePresence>
+        {selectedReviewedDetail && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#070d1f]/80 px-4 backdrop-blur-md"
+            onClick={closeReviewedDetailModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              className="w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[#070d1f] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="border-b border-white/5 bg-white/[0.02] px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">Review Details</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{selectedReviewedDetail.invoice_number}</p>
+                    <p className="text-xs text-(--muted)">{selectedReviewedDetail.vendor_name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeReviewedDetailModal}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-(--muted) transition-colors hover:bg-white/10 hover:text-white"
+                    aria-label="Close review detail modal"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4 px-5 py-4 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-white/[0.02] p-3 ring-1 ring-white/10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted)">Reviewed By</p>
+                    <p className="mt-1 text-white/90">{selectedReviewedDetail.reviewed_by}</p>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.02] p-3 ring-1 ring-white/10">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted)">Reviewed At</p>
+                    <p className="mt-1 text-white/90">{formatDate(selectedReviewedDetail.reviewed_at)}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-white/[0.02] p-3 ring-1 ring-white/10">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-(--muted)">Resolved Value</p>
+                  <p className="mt-1 font-mono text-white/90">
+                    {formatCurrency(selectedReviewedDetail.grand_total, selectedReviewedDetail.currency)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Reviewer Note</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-emerald-100/90">
+                    {selectedReviewedDetail.review_note?.trim() || 'No reviewer note was provided for this resolution.'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {selectedInvoice && (
           <motion.div
             initial={{ opacity: 0 }}

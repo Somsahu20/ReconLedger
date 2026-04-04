@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, date
 from decimal import Decimal
-from sqlalchemy import Integer, String, Date, TIMESTAMP, Numeric, ForeignKey, Text, Enum as SQLEnum, LargeBinary, func
+from sqlalchemy import Integer, String, Date, TIMESTAMP, Numeric, ForeignKey, Text, Enum as SQLEnum, func, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from enum import Enum
@@ -30,12 +30,15 @@ class Invoice(Base):
     grand_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     status: Mapped[InvoiceStatus] = mapped_column(SQLEnum(InvoiceStatus), nullable=False, server_default=InvoiceStatus.CLEAN.value)
     audit_report: Mapped[str | None] = mapped_column(Text, nullable=True)
-    pdf_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    pdf_data: Mapped[str | None] = mapped_column(Text, nullable=True)
     uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     # nullable: set explicitly once AI processing completes, not on insert
     processed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    ai_processed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default='false')
+    ai_message: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationships
     uploaded_by_user: Mapped["User"] = relationship("User", back_populates="invoices")

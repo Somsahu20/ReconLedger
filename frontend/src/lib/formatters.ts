@@ -1,15 +1,17 @@
 export function formatCurrency(value: number | string, currency = 'INR') {
   const amount = Number(value)
+  const currencyCode = String(currency || 'INR').trim().toUpperCase()
 
   if (!Number.isFinite(amount)) {
-    return `${currency} 0.00`
+    return `${currencyCode} 0.00`
   }
 
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency,
+  const formattedAmount = new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount)
+
+  return `${currencyCode} ${formattedAmount}`
 }
 
 export function formatDate(dateValue: string | null) {

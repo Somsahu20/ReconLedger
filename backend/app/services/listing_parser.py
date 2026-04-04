@@ -9,23 +9,56 @@ COLUMN_ALIASES = {
     "invoice_number": [
         "invoice#", "invoice_no", "inv_no", "inv#",
         "bill_no", "bill_number", "document_number",
-        "doc_no", "voucher_no", "invoice_num"
+        "doc_no", "voucher_no", "invoice_num", "invoice_id",
+        "inv_number", "inv_num", "ref_no", "reference_number",
+        "reference_no", "ref#", "debit_note_no", "credit_note_no"
     ],
     "vendor_name": [
         "vendor", "supplier", "supplier_name", "party_name",
-        "party", "payee", "company", "from"
+        "party", "payee", "company", "from", "seller",
+        "seller_name", "merchant", "merchant_name", "firm",
+        "firm_name", "creditor", "creditor_name", "billed_by"
     ],
     "date": [
         "invoice_date", "bill_date", "transaction_date",
-        "doc_date", "posting_date", "entry_date", "txn_date"
+        "doc_date", "posting_date", "entry_date", "txn_date",
+        "inv_date", "issue_date", "raised_date", "created_date"
+    ],
+    "due_date": [
+        "payment_date", "pay_by", "pay_by_date", "payment_due",
+        "payment_due_date", "due", "maturity_date", "deadline",
+        "expected_payment_date", "due_on", "payable_by",
+        "settlement_date", "target_date"
     ],
     "amount": [
         "grand_total", "total", "total_amount", "net_amount",
-        "invoice_amount", "bill_amount", "value", "base_amount"
+        "invoice_amount", "bill_amount", "value", "base_amount",
+        "gross_amount", "payable_amount", "net_payable",
+        "total_value", "invoice_value", "final_amount"
     ],
     "tax_amount": [
         "tax", "gst", "gst_amount", "igst", "cgst_sgst",
-        "tax_value", "vat", "total_tax"
+        "tax_value", "vat", "total_tax", "tax_total",
+        "sgst", "cgst", "utgst", "igst_amount", "vat_amount",
+        "service_tax", "sales_tax", "tds", "withholding_tax"
+    ],
+    "currency": [
+        "ccy", "currency_code", "curr", "cur", "fx_currency",
+        "transaction_currency", "inv_currency", "billing_currency",
+        "payment_currency", "forex", "iso_currency", "curr_code"
+    ],
+    "po_number": [
+        "po_no", "po#", "purchase_order", "purchase_order_no",
+        "purchase_order_number", "po_ref", "order_no", "order_number",
+        "order#", "wo_number", "work_order", "work_order_no",
+        "contract_no", "contract_number", "so_number", "sales_order"
+    ],
+    "tax_id": [
+        "gstin", "gst_no", "gst_number", "gst_in", "gstin_no",
+        "vat_no", "vat_number", "vat_id", "tin", "tin_no",
+        "tax_number", "tax_no", "tax_reg_no", "tax_registration",
+        "pan", "pan_no", "pan_number", "ein", "ein_no",
+        "abn", "trn", "tax_identification_number"
     ],
 }
 
@@ -158,12 +191,20 @@ def parse_listing_file(file_bytes: bytes, filename: str) -> list[dict]:
                 errors.append(f"Row {idx + 2}: Empty invoice number")
                 continue
 
+            raw_currency = row.get("currency")
+
             records.append({
                 "invoice_number": inv_number,
                 "vendor_name": str(row.get("vendor_name", "")).strip(),
                 "date": _parse_date_value(row.get("date")),
                 "amount": float(amount),
                 "tax_amount": float(tax),
+                
+                "currency": str(raw_currency).strip().upper() if pd.notna(raw_currency) and str(raw_currency).strip() else None,
+
+                "po_number": str(row.get("po_number", "")).strip() or None,
+                "tax_id": str(row.get("tax_id", "")).strip() or None,
+                "due_date": _parse_date_value(row.get("due_date"))
             })
 
         except Exception as e:

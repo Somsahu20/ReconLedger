@@ -23,7 +23,27 @@ export function RegisterPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
+    
+    if (!/[A-Z]/.test(password)) {
+      toast.error("Must contain at least one uppercase letter");
+      return;
+    }      
+      
+    if (!/[a-z]/.test(password)){
+      toast.error("Must contain at least one lowercase letter");
+      return;
+    }      
+      
+    if (!/\d/.test(password)){
+      toast.error("Must contain at least one digit");
+      return;
+    }    
+       
+    if (!/[@$!%*#&?]/.test(password)){
+       toast.error("Must contain at least one special character (@$!%*#&?)");
+      return;
+    }  
+     
     if (password !== confirmPassword) {
       toast.error('Passwords do not match')
       return

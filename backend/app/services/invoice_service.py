@@ -20,7 +20,8 @@ async def create_invoice(
     validation_result: dict,
     uploaded_by: UUID,
     status: str,
-    audit_report: str | None = None
+    audit_report: str | None = None,
+    pdf_data: str | None = None,
 ) -> Invoice:
     """Create a new invoice with line items and validation checks."""
     
@@ -45,6 +46,7 @@ async def create_invoice(
         audit_report=audit_report,
         uploaded_by=uploaded_by,
         processed_at=datetime.now(timezone.utc),
+        pdf_data=pdf_data,
     )
 
     try:
@@ -169,6 +171,8 @@ async def list_invoices(
                     currency=inv.currency,
                     status=inv.status.value,
                     processed_at=inv.processed_at,
+                    ai_processed=inv.ai_processed,
+                    ai_message=inv.ai_message
                 )
                 for inv in invoices
             ]
